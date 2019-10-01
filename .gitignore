@@ -3,3 +3,5 @@ moc*
 ProgressLog*
 *.o
 .vscode/
+
+.qmake.stash
