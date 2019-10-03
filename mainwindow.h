@@ -3,6 +3,8 @@
 
 #include <QtWidgets/QMainWindow>
 
+class Board;
+class jsonReceive;
 class QLabel;
 class QString;
 class QPushButton;
@@ -13,11 +15,13 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
+    int ourTID;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
 private:
-    QString *jsonFileName;
+    Board *forDisplayBoard;
+    std::string jsonNameStr;
     QLabel *ourTeamID;
     QLabel *ourTeamID_Num;
     QLabel *turn;
@@ -38,10 +42,9 @@ private:
     QPushButton *getJsonFile;
     QPushButton *startSearch;
     QPushButton *stopSearch;
-
 private slots:
     void getJson();
-    void startSearching(std::string *jsonNameStr);
+    void startSearching();
 };
 
 #endif // MAINWINDOW_H

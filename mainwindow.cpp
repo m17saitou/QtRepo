@@ -4,6 +4,8 @@ Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
 盤面の表示用の表の作り方は http://mf-atelier.sakura.ne.jp/mf-atelier/modules/tips/program/Qt/qt_tips.html を参考にしながらやってみる
 */
 #include "mainwindow.h"
+#include "jsonReceive.hpp"
+#include "Board.hpp"
 #include <stdio.h>
 #include <string>
 #include <QtGui>
@@ -16,7 +18,7 @@ Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    jsonFileName = new QString("Empty");
+    ourTID = 1;
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
     ourTeamID_Num = new QLabel("0");
     ourTeamID->setBuddy(ourTeamID_Num);
@@ -58,8 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     stopSearch->setEnabled(true);
 
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
-    std::string jsonNameStr = jsonFileName->toUtf8().constData();
-    connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching(std::string *jsonNameStr)));
+    connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
 
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
     topArea->addWidget(ourTeamID);
@@ -112,11 +113,13 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::getJson(){
     QString jsonDialogName = QFileDialog::getOpenFileName(this,tr("JsonFile Read"),".","json File (*.json)");
     if(!jsonDialogName.isEmpty()){
-        *jsonFileName = jsonDialogName;
+        jsonNameStr = jsonDialogName.toUtf8().constData();
     }
+    forDisplayBoard = jsonReceive::jsonRead(ourTID,jsonNameStr);
+    forDisplayBoard->display();
     return;
 }
-void MainWindow::startSearching(std::string *jsonNameStr){
+void MainWindow::startSearching(){
     std::cout << jsonNameStr << "\n";
 }
 

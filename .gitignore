@@ -1,6 +1,5 @@
-Makefile
 moc*
-ProgressLog*
+ProgressLog1
 *.o
 .vscode/
 
