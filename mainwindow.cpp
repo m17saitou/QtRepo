@@ -120,12 +120,19 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::getJson(){
+    forDisplayBoard->agentMapG_to_L.clear();
+    forDisplayBoard->agentMapL_to_G.clear();
+    for(int y=0;y<20;y++){//処理前にクリア
+        for(int x=0;x<20;x++){
+            ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(" ");
+            boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #fff");
+        }
+    }
     QString jsonDialogName = QFileDialog::getOpenFileName(this,tr("JsonFile Read"),".","json File (*.json)");
     if(!jsonDialogName.isEmpty()){
         jsonNameStr = jsonDialogName.toUtf8().constData();
     }
     forDisplayBoard = jsonReceive::jsonRead(ourTID,jsonNameStr);
-    forDisplayBoard->display();
 
     std::map <int , int> xyToAgentID;
     for(int i=0;i<forDisplayBoard->num_agent;i++){
@@ -138,19 +145,25 @@ void MainWindow::getJson(){
             tileP->setNum(forDisplayBoard->field_points[y][x],10);
             decltype(xyToAgentID)::iterator thereAgent = xyToAgentID.find(y*forDisplayBoard->width + x);
             ((QLabel*)(boardDisplay->cellWidget(x,y)))->setAlignment(Qt::AlignCenter);
+            ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
             if(forDisplayBoard->tiled[y][x] == 1){
-                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
-                boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #ffc0cb");
+                if(thereAgent != xyToAgentID.end()) boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #ffc0cb");
+                else boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #dd88dd");
             }//味方のマス 背景色赤色
             else if(forDisplayBoard->tiled[y][x] == -1){
-                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
-                boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00eeee");
+                if(thereAgent != xyToAgentID.end()) boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00eeee");
+                else boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00bfff");
             }//敵のマス 背景色青色
-            else{
-                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
-            }
         }
     }
+    ourTeamID_Num->setNum(forDisplayBoard->getAIdL_to_G(1));
+    turn_Num->setNum(forDisplayBoard->turn);
+    ourAreaP->setNum(forDisplayBoard->calcAreaPoint(1));
+    enemyAreaP->setNum(forDisplayBoard->calcAreaPoint(-1));
+    ourTileP->setNum(forDisplayBoard->tile_point(1));
+    enemyTileP->setNum(forDisplayBoard->tile_point(-1));
+    ourPoint->setNum(forDisplayBoard->calcAreaPoint(1) + forDisplayBoard->tile_point(1));
+    enemyPoint->setNum(forDisplayBoard->calcAreaPoint(-1) + forDisplayBoard->tile_point(-1));
     return;
 }
 void MainWindow::startSearching(){
