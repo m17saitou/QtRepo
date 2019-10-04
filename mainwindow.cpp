@@ -7,24 +7,29 @@ Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
 #include "jsonReceive.hpp"
 #include "Board.hpp"
 #include <stdio.h>
+#include <map>
 #include <string>
 #include <QtGui>
 #include <iostream>
 #include <QString>
 #include <QtWidgets/QtWidgets>
+#include <QCoreApplication>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QSizePolicy>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    ourTID = 1;
+    QStringList argStr = QCoreApplication::arguments();
+    bool ok;
+    ourTID = argStr.value(1).toInt(&ok,10);//コマンドライン引数からのチームID読み込み
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
     ourTeamID_Num = new QLabel("0");
     ourTeamID->setBuddy(ourTeamID_Num);
     turn = new QLabel(tr("Turn"));//盤面のターン表示Label
     turn_Num = new QLabel("0");
     turn->setBuddy(turn_Num);
+    ourColor = new QLabel("Our TeamColor : Pink");
     point = new QLabel("Point");
     tile = new QLabel("Tile");
     area = new QLabel("Area");
@@ -42,9 +47,12 @@ MainWindow::MainWindow(QWidget *parent)
     boardDisplay->setFixedSize(630,630);
     boardDisplay->setHorizontalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
     boardDisplay->setVerticalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
-    for(int i = 0; i<20;i++){
+    for(int i=0;i<20;i++){
         boardDisplay->setRowHeight(i,30);
         boardDisplay->setColumnWidth(i,30);
+        for(int j=0;j<20;j++){
+            boardDisplay->setCellWidget(i, j, new QLabel());
+        }
     }
     boardDisplay->setSelectionMode(QAbstractItemView::NoSelection);
     boardDisplay->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -67,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
     topArea->addWidget(ourTeamID_Num);
     topArea->addWidget(turn);
     topArea->addWidget(turn_Num);
+    topArea->addWidget(ourColor);
     QVBoxLayout *leftSide = new QVBoxLayout();
     leftSide->addLayout(topArea);
     leftSide->addWidget(boardDisplay);
@@ -117,6 +126,31 @@ void MainWindow::getJson(){
     }
     forDisplayBoard = jsonReceive::jsonRead(ourTID,jsonNameStr);
     forDisplayBoard->display();
+
+    std::map <int , int> xyToAgentID;
+    for(int i=0;i<forDisplayBoard->num_agent;i++){
+        xyToAgentID.emplace((forDisplayBoard->friend_place[i].getY()) * forDisplayBoard->width + (forDisplayBoard->friend_place[i].getX()) , i+1);
+        xyToAgentID.emplace((forDisplayBoard->enemy_place[i].getY()) * forDisplayBoard->width + (forDisplayBoard->enemy_place[i].getX()) , -i-1);
+    }
+    QString *tileP = new QString();
+    for(int y=0;y<forDisplayBoard->height;y++){
+        for(int x=0;x<forDisplayBoard->width;x++){
+            tileP->setNum(forDisplayBoard->field_points[y][x],10);
+            decltype(xyToAgentID)::iterator thereAgent = xyToAgentID.find(y*forDisplayBoard->width + x);
+            ((QLabel*)(boardDisplay->cellWidget(x,y)))->setAlignment(Qt::AlignCenter);
+            if(forDisplayBoard->tiled[y][x] == 1){
+                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
+                boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #ffc0cb");
+            }//味方のマス 背景色赤色
+            else if(forDisplayBoard->tiled[y][x] == -1){
+                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
+                boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00eeee");
+            }//敵のマス 背景色青色
+            else{
+                ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
+            }
+        }
+    }
     return;
 }
 void MainWindow::startSearching(){

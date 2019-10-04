@@ -25,6 +25,7 @@ private:
     QLabel *ourTeamID;
     QLabel *ourTeamID_Num;
     QLabel *turn;
+    QLabel *ourColor;
     QLabel *turn_Num;
     QLabel *ourP;
     QLabel *enemyP;
