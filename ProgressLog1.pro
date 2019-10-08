@@ -30,7 +30,6 @@ HEADERS += Agent-Action.hpp \
 SOURCES += Action.cpp \
            alpha-beta.cpp \
            Board.cpp \
-           Board_json.cpp \
            jsonReceive.cpp \
            main.cpp \
            mainwindow.cpp \

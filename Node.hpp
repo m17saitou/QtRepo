@@ -36,6 +36,7 @@ class Node{
     }
 
     inline Node(uint16_t bit,int cnt){
+      //cout << "Node(uint16_t bit,int cnt)" << endl;
         child_num = 0;
         game_sum = 0;
         active_agent = bit;
@@ -70,8 +71,11 @@ class Node{
     }
 
     inline Child* get_children(int16_t key){
-        if(children.find(key) != children.end()){
-            return children[key];
+        map<int16_t,Child*>::iterator i=children.find(key);//chikara追加
+        if(i != children.end()){//chikara追加
+          return i->second;//chikara追加
+        //if(children.find(key) != children.end()){//chikaraコメントアウト
+            //return children[key];
         }
         else {
             return nullptr;
@@ -103,6 +107,13 @@ class Node{
             if(!bit_calculation::low_return_bit(i,active_agent))continue;
             cout<<hex<<agent_bit[cnt]<<endl;
             cnt++;
-        } 
+        }
+    }
+
+    void printChildren(){
+      cout << "print:children=";
+      for(map<int16_t,Child*>::iterator it=children.begin();it!=children.end();it++){
+        cout << "(" <<it->first<<","<< std::hex <<it->second<< ")" << std::dec;
+      }
     }
 };

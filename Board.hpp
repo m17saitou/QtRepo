@@ -87,8 +87,12 @@ public:
     static int get_field_point(int dx, int dy);   //タイルの値を取り出す
     void setTile(char jsontiled[], int h ,int w); //タイルの種類を格納
     static int addAgentMap(int globalAID, int localAID); //agentIDをJsonで受け取ったものからプログラム内で使うものに変換
-    static int getAIdG_to_L(int globalAID);              //GlobalAgentID(Jsonで受け取る)を引数としLocalAgentIDを返す
-    static int getAIdL_to_G(int localAID);               //LocalAgentID(プログラム内で使う)を引数としGlobalAgentIDを返す
+    static int getAIdG_to_L(int globalAID){              //GlobalAgentID(Jsonで受け取る)を引数としLocalAgentIDを返す
+        return agentMapG_to_L.at(globalAID);
+    }
+    static int getAIdL_to_G(int localAID){               //LocalAgentID(プログラム内で使う)を引数としGlobalAgentIDを返す
+        return agentMapL_to_G.at(localAID);
+    }
     int action(Action *action0, int number_agent);
     static int agent_type(int id);       //敵か味方か判断する
     Point getAgent_place(int id); //idを渡したらそのエージェントの座標を返す

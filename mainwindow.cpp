@@ -1,7 +1,6 @@
 /*
 Qt version 4.8.7
 Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
-盤面の表示用の表の作り方は http://mf-atelier.sakura.ne.jp/mf-atelier/modules/tips/program/Qt/qt_tips.html を参考にしながらやってみる
 */
 #include "mainwindow.h"
 #include "jsonReceive.hpp"
@@ -25,10 +24,8 @@ MainWindow::MainWindow(QWidget *parent)
     ourTID = argStr.value(1).toInt(&ok,10);//コマンドライン引数からのチームID読み込み
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
     ourTeamID_Num = new QLabel("0");
-    ourTeamID->setBuddy(ourTeamID_Num);
     turn = new QLabel(tr("Turn"));//盤面のターン表示Label
     turn_Num = new QLabel("0");
-    turn->setBuddy(turn_Num);
     ourColor = new QLabel("Our TeamColor : Pink");
     point = new QLabel("Point");
     tile = new QLabel("Tile");
@@ -44,18 +41,32 @@ MainWindow::MainWindow(QWidget *parent)
     enemyPoint = new QLabel("0");
 
     boardDisplay = new QTableWidget(20,20,this);
-    boardDisplay->setFixedSize(630,630);
+    boardDisplay->setFixedSize(622,624);
     boardDisplay->setHorizontalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
     boardDisplay->setVerticalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
     for(int i=0;i<20;i++){
         boardDisplay->setRowHeight(i,30);
         boardDisplay->setColumnWidth(i,30);
         for(int j=0;j<20;j++){
-            boardDisplay->setCellWidget(i, j, new QLabel());
+            boardDisplay->setCellWidget(i, j, new QTableWidgetItem());
         }
     }
     boardDisplay->setSelectionMode(QAbstractItemView::NoSelection);
     boardDisplay->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    agentWhereXY = new QTableWidget(16,4,this);
+    agentWhereXY->setFixedSize(142,344);
+    agentWhereXY->setHorizontalHeaderLabels(QStringList() << "LID" << "GID" << "x" << "y");
+    for(int i=0;i<4;i++){
+        agentWhereXY->setColumnWidth(i,30);
+        for(int j=0;j<16;j++){
+            agentWhereXY->setRowHeight(j,20);
+            agentWhereXY->setCellWidget(j,i, new QLabel());
+            ((QLabel*)(agentWhereXY->cellWidget(j,i)))->setAlignment(Qt::AlignCenter);
+        }
+    }
+    agentWhereXY->setSelectionMode(QAbstractItemView::NoSelection);
+    agentWhereXY->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     getJsonFile = new QPushButton(tr("GetJsonFile"));
     getJsonFile->setDefault(true);
@@ -73,8 +84,10 @@ MainWindow::MainWindow(QWidget *parent)
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
     topArea->addWidget(ourTeamID);
     topArea->addWidget(ourTeamID_Num);
+    topArea->addStretch();
     topArea->addWidget(turn);
     topArea->addWidget(turn_Num);
+    topArea->addStretch();
     topArea->addWidget(ourColor);
     QVBoxLayout *leftSide = new QVBoxLayout();
     leftSide->addLayout(topArea);
@@ -106,9 +119,12 @@ MainWindow::MainWindow(QWidget *parent)
     buttonLayout->addWidget(stopSearch);
 
     QVBoxLayout *rightSide = new QVBoxLayout();
+    rightSide->addStretch();
     rightSide->addLayout(pointDisplay);
+    rightSide->addStretch();
     rightSide->addLayout(buttonLayout);
     rightSide->addStretch();
+    rightSide->addWidget(agentWhereXY);
 
     QHBoxLayout *mainLayout = new QHBoxLayout();//メインの全てを含んだLayout
     mainLayout->addLayout(leftSide);
@@ -124,10 +140,14 @@ void MainWindow::getJson(){
     forDisplayBoard->agentMapL_to_G.clear();
     for(int y=0;y<20;y++){//処理前にクリア
         for(int x=0;x<20;x++){
-            ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(" ");
-            boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #fff");
+            ((QLabel*)(boardDisplay->cellWidget(y,x)))-> setText(" ");
+            boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #fff");
+            if(y<16 && x<4){
+                ((QLabel*)(agentWhereXY->cellWidget(y,x)))->setText(" ");
+                agentWhereXY->cellWidget(y,x)->setStyleSheet("background-color: #fff");
+            }
         }
-    }
+    } 
     QString jsonDialogName = QFileDialog::getOpenFileName(this,tr("JsonFile Read"),".","json File (*.json)");
     if(!jsonDialogName.isEmpty()){
         jsonNameStr = jsonDialogName.toUtf8().constData();
@@ -140,30 +160,58 @@ void MainWindow::getJson(){
         xyToAgentID.emplace((forDisplayBoard->enemy_place[i].getY()) * forDisplayBoard->width + (forDisplayBoard->enemy_place[i].getX()) , -i-1);
     }
     QString *tileP = new QString();
+    char ourChar = 64,enemyChar = 96;
+    int wherecount=0;
     for(int y=0;y<forDisplayBoard->height;y++){
         for(int x=0;x<forDisplayBoard->width;x++){
-            tileP->setNum(forDisplayBoard->field_points[y][x],10);
+            *tileP = QString::number(forDisplayBoard->field_points[y][x],10);
             decltype(xyToAgentID)::iterator thereAgent = xyToAgentID.find(y*forDisplayBoard->width + x);
-            ((QLabel*)(boardDisplay->cellWidget(x,y)))->setAlignment(Qt::AlignCenter);
-            ((QLabel*)(boardDisplay->cellWidget(x,y)))-> setText(*tileP);
             if(forDisplayBoard->tiled[y][x] == 1){
-                if(thereAgent != xyToAgentID.end()) boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #ffc0cb");
-                else boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #dd88dd");
+                if(thereAgent != xyToAgentID.end()){
+                    boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #ffc0cb");
+                    ourChar += thereAgent->second;
+                    *tileP += QString::fromUtf8(&ourChar,1);
+                    int LIDnum = thereAgent->second;
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,0)))->setText(QString::fromUtf8(&ourChar,1));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,1)))->setText(QString::number(Board::getAIdL_to_G(LIDnum)));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,2)))->setText(QString::number(x+1));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,3)))->setText(QString::number(y+1));
+                    agentWhereXY->cellWidget(wherecount,0)->setStyleSheet("background-color: #ffc0cb");
+                    wherecount++;
+                }
+                else boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #dd88dd");
             }//味方のマス 背景色赤色
             else if(forDisplayBoard->tiled[y][x] == -1){
-                if(thereAgent != xyToAgentID.end()) boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00eeee");
-                else boardDisplay->cellWidget(x,y)->setStyleSheet("background-color: #00bfff");
+                if(thereAgent != xyToAgentID.end()){
+                    boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #00eeee");
+                    enemyChar += -(thereAgent->second);
+                    *tileP += QString::fromUtf8(&enemyChar,1);
+                    int LIDnum = thereAgent->second;
+                    ((QLabel*)(agentWhereXY->cellWidget(forDisplayBoard->num_agent + (-LIDnum-1),0)))->setText(QString::fromUtf8(&enemyChar,1));
+                    ((QLabel*)(agentWhereXY->cellWidget(forDisplayBoard->num_agent + (-LIDnum-1),1)))->setText(QString::number(Board::getAIdL_to_G(LIDnum)));
+                    ((QLabel*)(agentWhereXY->cellWidget(forDisplayBoard->num_agent + (-LIDnum-1),2)))->setText(QString::number(x+1));
+                    ((QLabel*)(agentWhereXY->cellWidget(forDisplayBoard->num_agent + (-LIDnum-1),3)))->setText(QString::number(y+1));
+                    agentWhereXY->cellWidget(forDisplayBoard->num_agent + (-LIDnum-1),0)->setStyleSheet("background-color: #00eeee");
+                }
+                else boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #00bfff");
             }//敵のマス 背景色青色
+            boardDisplay->cellWidget(y,x)->setAlignment(Qt::AlignCenter);
+            ((QLabel*)(boardDisplay->cellWidget(y,x)))-> setText(*tileP);
+            ourChar = 64,enemyChar = 96;
         }
     }
     ourTeamID_Num->setNum(forDisplayBoard->getAIdL_to_G(1));
     turn_Num->setNum(forDisplayBoard->turn);
-    ourAreaP->setNum(forDisplayBoard->calcAreaPoint(1));
-    enemyAreaP->setNum(forDisplayBoard->calcAreaPoint(-1));
-    ourTileP->setNum(forDisplayBoard->tile_point(1));
-    enemyTileP->setNum(forDisplayBoard->tile_point(-1));
-    ourPoint->setNum(forDisplayBoard->calcAreaPoint(1) + forDisplayBoard->tile_point(1));
-    enemyPoint->setNum(forDisplayBoard->calcAreaPoint(-1) + forDisplayBoard->tile_point(-1));
+    int ourAP = forDisplayBoard->calcAreaPoint(1),
+        enmAP = forDisplayBoard->calcAreaPoint(-1);
+    int ourTP = forDisplayBoard->tile_point(1),
+        enmTP = forDisplayBoard->tile_point(-1);
+    ourAreaP->setNum(ourAP);
+    enemyAreaP->setNum(enmAP);
+    ourTileP->setNum(ourTP);
+    enemyTileP->setNum(enmTP);
+    ourPoint->setNum(ourAP + ourTP);
+    enemyPoint->setNum(enmAP + enmTP);
     return;
 }
 void MainWindow::startSearching(){

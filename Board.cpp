@@ -126,10 +126,16 @@ Board::Board(int turn0, int **tiled0, Point friend_place0[], Point enemy_place0[
         std::memcpy(tiled[j],tiled0[j],sizeof(int)*width);
     }
     std::copy(wait_agent0.begin(),wait_agent0.end(),std::back_inserter(wait_agent));
+    //cout << "wait_agent=";
+    //for(int i=0;i<wait_agent.size();i++){
+    //  cout <<(wait_agent[i]) << ",";
+    //}
+    //cout << endl;
 }
 Board *Board::copy()
 { //Boardのコピー
-    return new Board(turn, tiled, friend_place, enemy_place);
+    //return new Board(turn, tiled, friend_place, enemy_place);//chikaraコメントアウト
+    return new Board(turn, tiled, friend_place, enemy_place, action_pending,wait_agent);//chikara修正のため差し替え追加
 }
 
 Board *Board::overwrite_copy(){
@@ -143,7 +149,10 @@ void Board::overwrite(Board &board){
     for(int j = 0; j < height; j++){
         std::memcpy(this->tiled[j], board.tiled[j], sizeof(int)*width);
     }
-    std::copy(board.wait_agent.begin(), board.wait_agent.end(), std::back_inserter(this->wait_agent));
+    //std::copy(board.wait_agent.begin(), board.wait_agent.end(), std::back_inserter(this->wait_agent));//chikaraコメントアウト
+    //cout<<"board.wait_agent.size()"<< board.wait_agent.size() << endl;
+    this->wait_agent=board.wait_agent;//chikara修正のため差し替え追加:遅いけど確実に動かすために仮で使う
+    this->turn=board.turn;//chikara追加
 }
 
 Board::~Board()
@@ -187,6 +196,7 @@ void Board::set_field_Point(char point[]){
 }
 
 void Board::display(){
+    cout<<"\n"<<endl;
     map <int , int> xyToAgentID;
     for(int i=0;i<num_agent;i++){
         xyToAgentID.emplace((friend_place[i].getY()) * width + (friend_place[i].getX()) , i+1);
@@ -214,12 +224,7 @@ int Board::addAgentMap(int globalAID,int localAID){//返り値はint. 正常に�
     else if (!P2.second)return 2;
     else return 0;
 }
-int Board::getAIdG_to_L(int globalAID){
-    return agentMapG_to_L.at(globalAID);//与えられたglobalAIDに対応するlocalAIDを返す
-}
-int Board::getAIdL_to_G(int localAID){
-    return agentMapL_to_G.at(localAID);//与えられたlocalAIDに対応するGlobalAIDを返す
-}
+
 int Board::tile_point(int side)
 { //sideで味方(1)か敵(-1)かを指定できる
     int tile_points;
@@ -243,7 +248,7 @@ int Board::area_point(int side)
     return 0;
     //領域ポイント計算メソッド
 }
-
+/*
 int Board::action(Action *action0,int number_agent){
     int action_bit = 0x0000;
     map<int, int> place_check; //key=座標,value=agentIDとする,この時、座標は100*x+yで表すものとする
@@ -253,19 +258,32 @@ int Board::action(Action *action0,int number_agent){
         Point agent_xy = getAgent_place(id);
         //cout<< "id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
         if(action0[i].getActionType() == Action::actionType::Move){
-            place_check[(agent_xy.getX()*100)+agent_xy.getY()] = id + 20;
             if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
                 if(id > 0) {
                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                    //cout<<id<<"が行動不可 1"<<endl;
+                    cout<<id<<"が行動不可 1"<<endl;
                 }
                 else if(id < 0) {
                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
-                    //cout<<id<<"が行動不可 2"<<endl;
+                    cout<<id<<"が行動不可 2"<<endl;
                 }
                 else {//debug
                     //cout << id <<"がおかしい in first Move"<<endl;
                     exit(0);
+                }
+            }
+            else{
+                if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==-1){
+                    if(id > 0){
+                        action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                        cout<<id<<"が行動不可 11"<<endl;
+                    }
+                }
+                else if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==1){
+                    if(id < 0){
+                        action_bit = bit_calculation::high_add_bit(-1,action_bit,(-1*id)-1);
+                        cout<<id<<"が行動不可 12"<<endl;
+                    }
                 }
             }
         }
@@ -274,11 +292,11 @@ int Board::action(Action *action0,int number_agent){
             if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
                 if(id > 0) {
                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                    //cout<<id<<"が行動不可 3"<<endl;
+                    cout<<id<<"が行動不可 3"<<endl;
                 }
                 else if(id < 0){
                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
-                    //cout<<id<<"が行動不可 4"<<endl;
+                    cout<<id<<"が行動不可 4"<<endl;
                 }
                 else {//debug
                     //cout << id <<"がおかしい in first Remove"<<endl;
@@ -286,13 +304,13 @@ int Board::action(Action *action0,int number_agent){
                 }
             }
             else if(tiled[agent_xy.getY()+action0[i].getDY()][agent_xy.getX()+action0[i].getDX()]==0){
-                if(id > 0){ 
+                if(id > 0){
                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                    //cout<<id<<"が行動不可 5"<<endl;
+                    cout<<id<<"が行動不可 5"<<endl;
                 }
                 else if(id < 0){
                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
-                    //cout<<id<<"が行動不可 6"<<endl;
+                    cout<<id<<"が行動不可 6"<<endl;
                 }
                 else {//debug
                     //cout << id <<"がおかしい in first Remove"<<endl;
@@ -320,40 +338,29 @@ int Board::action(Action *action0,int number_agent){
             //Point agent_xy = getAgent_place(id);
             if(action0[i].getActionType() == Action::actionType::Move){
                 int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
-                
                 if(place_check.find(will_place) != place_check.end()){
                     int overlap_id = place_check[will_place];
                     if(id > 0) {
                         action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                        //cout<<id<<"が行動不可 7"<<endl;
+                        cout<<id<<"が行動不可 7"<<endl;
                     }
                     else if(id < 0){
                         action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
-                        //cout<<id<<"が行動不可 8"<<endl;
+                        cout<<id<<"が行動不可 8"<<endl;
                     }
                     if(overlap_id < 10){
                          if(overlap_id > 0) {
                             action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
-                            //cout<<overlap_id<<"が行動不可 9"<<endl;
+                            cout<<overlap_id<<"が行動不可 9"<<endl;
                          }
                         else if(overlap_id < 0){
                             action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
-                            //cout<<overlap_id<<"が行動不可 10"<<endl;
+                            cout<<overlap_id<<"が行動不可 10"<<endl;
                         }
                     }
                 }
                 else{
-                    if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==-1){
-                        action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                        //cout<<id<<"が行動不可 11"<<endl;
-                    }
-                    else if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==1){
-                        action_bit = bit_calculation::high_add_bit(-1,action_bit,(-1*id)-1);
-                        //cout<<id<<"が行動不可 12"<<endl;
-                    }
-                    else {
-                        place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
-                    }
+                    place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
                 }
             }
             if(action0[i].getActionType() == Action::actionType::Remove){
@@ -362,20 +369,20 @@ int Board::action(Action *action0,int number_agent){
                     int overlap_id = place_check[will_place];
                     if(id > 0) {
                         action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
-                        //cout<<id<<"が行動不可 13"<<endl;
+                        cout<<id<<"が行動不可 13"<<endl;
                     }
                     else if(id < 0) {
                         action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
-                        //cout<<id<<"が行動不可 14"<<endl;
+                        cout<<id<<"が行動不可 14"<<endl;
                     }
                     if(overlap_id < 10){
                          if(overlap_id > 0) {
                             action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
-                            //cout<<id<<"が行動不可 15"<<endl;
+                            cout<<id<<"が行動不可 15"<<endl;
                          }
                         else if(overlap_id < 0){
                             action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
-                            //cout<<id<<"が行動不可 16"<<endl;
+                            cout<<id<<"が行動不可 16"<<endl;
                         }
                     }
                 }
@@ -412,7 +419,435 @@ int Board::action(Action *action0,int number_agent){
         }
     }
     return action_bit;
+}*/
+
+int Board::action(Action *action0,int number_agent){
+    int action_bit = 0x0000;
+    map<int, int> place_check; //key=座標,value=agentIDとする,この時、座標は100*x+yで表すものとする
+        //cout<<"ループ1"<<endl;
+    for(int i = 0;i < number_agent;i++){
+        int id = action0[i].getAgentID();
+        Point agent_xy = getAgent_place(id);
+        if(id > 0){
+            //cout<< "id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+            if(action0[i].getActionType() == Action::actionType::Move){
+                if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+                    action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                    cout<<id<<"が行動不可 1"<<endl;
+                }
+                else{
+                    if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==-1){
+                        action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                        cout<<id<<"が行動不可 11"<<endl;
+                    }
+                }
+            }
+            else if(action0[i].getActionType() == Action::actionType::Remove){
+                place_check[(agent_xy.getX()*100)+agent_xy.getY()] = id + 20;
+                if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+                    action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                    cout<<id<<"が行動不可 3"<<endl;
+                }
+                else if(tiled[agent_xy.getY()+action0[i].getDY()][agent_xy.getX()+action0[i].getDX()]==0){
+                    action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                    cout<<id<<"が行動不可 5"<<endl;
+                }
+            }
+            else if(action0[i].getActionType() == Action::actionType::Stay){
+                place_check[agent_xy.getX()*100+agent_xy.getY()] = id + 20;
+            }
+        }
+        else if (id < 0){
+            if(action0[i].getActionType() == Action::actionType::Move){
+                if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+                    action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+                    cout<<id<<"が行動不可 2"<<endl;
+                }
+                else if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==1){
+                    action_bit = bit_calculation::high_add_bit(-1,action_bit,(-1*id)-1);
+                    cout<<id<<"が行動不可 12"<<endl;
+                }
+            }
+            else if(action0[i].getActionType() == Action::actionType::Remove){
+                place_check[(agent_xy.getX()*100)+agent_xy.getY()] = id + 20;
+                if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+                    action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+                    cout<<id<<"が行動不可 4"<<endl;
+                }
+                else if(tiled[agent_xy.getY()+action0[i].getDY()][agent_xy.getX()+action0[i].getDX()]==0){
+                    action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+                    cout<<id<<"が行動不可 6"<<endl;
+                }
+            }
+            else if(action0[i].getActionType() == Action::actionType::Stay){
+                place_check[agent_xy.getX()*100+agent_xy.getY()] = id + 20;
+            }
+        }
+    }
+        ////cout<<"ループ2"<<endl;
+    for(int i = 0;i < number_agent;i++){
+        bool can;
+        int id = action0[i].getAgentID();
+        Point agent_xy = getAgent_place(id);
+        if(id > 0){
+            //cout<<"id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+            can = bit_calculation::high_return_bit(1,id-1,action_bit);
+            if(can == false){
+                //Point agent_xy = getAgent_place(id);
+                if(action0[i].getActionType() == Action::actionType::Move){
+                    int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+                    if(place_check.find(will_place) != place_check.end()){
+                        int overlap_id = place_check[will_place];
+                        action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                        cout<<id<<"が行動不可 7"<<endl;
+                        if(overlap_id < 10){
+                            if(overlap_id > 0) {
+                                action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+                                cout<<overlap_id<<"が行動不可 9"<<endl;
+                            }
+                            else if(overlap_id < 0){
+                                action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+                                cout<<overlap_id<<"が行動不可 10"<<endl;
+                            }
+                        }
+                    }
+                    else{
+                        place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+                    }
+                }
+                if(action0[i].getActionType() == Action::actionType::Remove){
+                    int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+                    if(place_check.find(will_place) != place_check.end()){
+                        int overlap_id = place_check[will_place];
+                        action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+                        cout<<id<<"が行動不可 13"<<endl;
+                        if(overlap_id < 10){
+                            if(overlap_id > 0) {
+                                action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+                                cout<<id<<"が行動不可 15"<<endl;
+                            }
+                            else if(overlap_id < 0){
+                                action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+                                cout<<id<<"が行動不可 16"<<endl;
+                            }
+                        }
+                    }
+                    else place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+                }
+            }
+        }
+        else if(id < 0){
+            can = bit_calculation::high_return_bit(-1,-id-1,action_bit);
+            if(can == false){
+                //Point agent_xy = getAgent_place(id);
+                if(action0[i].getActionType() == Action::actionType::Move){
+                    int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+                    if(place_check.find(will_place) != place_check.end()){
+                        int overlap_id = place_check[will_place];
+                        action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+                        cout<<id<<"が行動不可 8"<<endl;
+                        if(overlap_id < 10){
+                            if(overlap_id > 0) {
+                                action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+                                cout<<overlap_id<<"が行動不可 9"<<endl;
+                            }
+                            else if(overlap_id < 0){
+                                action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+                                cout<<overlap_id<<"が行動不可 10"<<endl;
+                            }
+                        }
+                    }
+                    else{
+                        place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+                    }
+                }
+                if(action0[i].getActionType() == Action::actionType::Remove){
+                    int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+                    if(place_check.find(will_place) != place_check.end()){
+                        int overlap_id = place_check[will_place];
+                        action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+                        cout<<id<<"が行動不可 14"<<endl;
+                        if(overlap_id < 10){
+                            if(overlap_id > 0) {
+                                action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+                                cout<<id<<"が行動不可 15"<<endl;
+                            }
+                            else if(overlap_id < 0){
+                                action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+                                cout<<id<<"が行動不可 16"<<endl;
+                            }
+                        }
+                    }
+                    else place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+                }
+            }
+        }
+    }
+        //cout<<"ループ3"<<endl;
+    for(int i = 0;i < number_agent;i++){
+        int id =action0[i].getAgentID();
+        Point agent_xy = getAgent_place(id);
+        if(id > 0){
+            //cout<< "id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+            bool can = bit_calculation::high_return_bit(1,id-1,action_bit);
+            if(can == false){
+                if(action0[i].getActionType() == Action::actionType::Move){
+                    agent_xy.addDXDY(action0[i].getDX(),action0[i].getDY());
+                    friend_place[id-1].setXY(agent_xy.getX(),agent_xy.getY());
+                    set_one_tile(agent_type(id),agent_xy.getX(),agent_xy.getY());
+                }
+                if(action0[i].getActionType() == Action::actionType::Remove){
+                    Point agent_xy = getAgent_place(id);
+                    set_one_tile(0,agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY());
+                }
+            }
+        }
+        else if(id < 0){
+            bool can = bit_calculation::high_return_bit(-1,(-id)-1,action_bit);
+            if(can == false){
+                if(action0[i].getActionType() == Action::actionType::Move){
+                    //Point agent_xy = getAgent_place(id);
+                    agent_xy.addDXDY(action0[i].getDX(),action0[i].getDY());
+                    enemy_place[(-id)-1].setXY(agent_xy.getX(),agent_xy.getY());
+                    set_one_tile(agent_type(id),agent_xy.getX(),agent_xy.getY());
+                }
+                if(action0[i].getActionType() == Action::actionType::Remove){
+                    Point agent_xy = getAgent_place(id);
+                    set_one_tile(0,agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY());
+                }
+            }
+        } 
+
+    }
+    return action_bit;
 }
+
+// int Board::action(Action *action0,int number_agent){
+//     int action_bit = 0x0000;
+//     map<int, int> place_check; //key=座標,value=agentIDとする,この時、座標は100*x+yで表すものとする
+//         //cout<<"ループ1"<<endl;
+//     for(int i = 0;i < number_agent;i++){
+//         int id = action0[i].getAgentID();
+//         Point agent_xy = getAgent_place(id);
+//         if(id > 0){
+//             //cout<< "id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+//             if(action0[i].getActionType() == Action::actionType::Move){
+//                 if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+//                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                     cout<<id<<"が行動不可 1"<<endl;
+//                 }
+//                 else{
+//                     if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==-1){
+//                         action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                         cout<<id<<"が行動不可 11"<<endl;
+//                     }
+//                 }
+//             }
+//             else if(action0[i].getActionType() == Action::actionType::Remove){
+//                 place_check[(agent_xy.getX()*100)+agent_xy.getY()] = id + 20;
+//                 if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+//                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                     cout<<id<<"が行動不可 3"<<endl;
+//                 }
+//                 else if(tiled[agent_xy.getY()+action0[i].getDY()][agent_xy.getX()+action0[i].getDX()]==0){
+//                     action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                     cout<<id<<"が行動不可 5"<<endl;
+//                 }
+//             }
+//             else if(action0[i].getActionType() == Action::actionType::Stay){
+//                 place_check[agent_xy.getX()*100+agent_xy.getY()] = id + 20;
+//             }
+//         }
+//         else if (id < 0){
+//             if(action0[i].getActionType() == Action::actionType::Move){
+//                 if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+//                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+//                     cout<<id<<"が行動不可 2"<<endl;
+//                 }
+//                 else if(getTile(agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY())==1){
+//                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-1*id)-1);
+//                     cout<<id<<"が行動不可 12"<<endl;
+//                 }
+//             }
+//             else if(action0[i].getActionType() == Action::actionType::Remove){
+//                 place_check[(agent_xy.getX()*100)+agent_xy.getY()] = id + 20;
+//                 if(movewall(id,action0[i].getDX(),action0[i].getDY()) == false){
+//                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+//                     cout<<id<<"が行動不可 4"<<endl;
+//                 }
+//                 else if(tiled[agent_xy.getY()+action0[i].getDY()][agent_xy.getX()+action0[i].getDX()]==0){
+//                     action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+//                     cout<<id<<"が行動不可 6"<<endl;
+//                 }
+//             }
+//             else if(action0[i].getActionType() == Action::actionType::Stay){
+//                 place_check[agent_xy.getX()*100+agent_xy.getY()] = id + 20;
+//             }
+//         }
+//     }
+//         ////cout<<"ループ2"<<endl;
+//     for(int i = 0;i < number_agent;i++){
+//         bool can;
+//         int id = action0[i].getAgentID();
+//         Point agent_xy = getAgent_place(id);
+//         if(id > 0){
+//             //cout<<"id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+//             can = bit_calculation::high_return_bit(1,id-1,action_bit);
+//             if(can == false){
+//                 //Point agent_xy = getAgent_place(id);
+//                 if(action0[i].getActionType() == Action::actionType::Move){
+//                     int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+//                     if(place_check.find(will_place) != place_check.end()){
+//                         int overlap_id = place_check[will_place];
+//                         action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                         cout<<id<<"が行動不可 7"<<endl;
+//                         if(overlap_id < 10){
+//                             if(overlap_id > 0) {
+//                                 action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+//                                 cout<<overlap_id<<"が行動不可 9"<<endl;
+//                             }
+//                             else if(overlap_id < 0){
+//                                 action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+//                                 cout<<overlap_id<<"が行動不可 10"<<endl;
+//                             }
+//                         }
+//                         int back_place = (agent_xy.getX()*100)+agent_xy.getY();
+//                         if(place_check.find(back_place) != place_check.end()){
+//                             while(true){
+//                                 int back_id = place_check[back_place];
+//                                 place_check[back_place] = id;
+//                                 if(back_id < 10){
+//                                     if(back_id > 0) {
+//                                         action_bit = bit_calculation::high_add_bit(1,action_bit,back_id-1);
+//                                         cout<<back_id<<"が行動不可 17"<<endl;
+//                                     }
+//                                     else if(back_id < 0){
+//                                         action_bit = bit_calculation::high_add_bit(-1,action_bit,(-back_id)-1);
+//                                         cout<<back_id<<"が行動不可 18"<<endl;
+//                                     }
+//                                 }
+//                                 else break;
+//                                 int x;
+//                                 for(x = 0;x < number_agent;x++){
+//                                     if(action0[x].getAgentID() == back_id){
+//                                         back_place = (((agent_xy.getX()-action0[x].getDX())*100)+(agent_xy.getY()-action0[x].getDY()));
+//                                         break;
+//                                     }
+//                                 }
+//                                 if(action0[x].getActionType() != Action::actionType::Move)break;
+//                             }
+//                         }
+//                     }
+//                     else{
+//                         place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+//                     }
+//                 }
+//                 if(action0[i].getActionType() == Action::actionType::Remove){
+//                     int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+//                     if(place_check.find(will_place) != place_check.end()){
+//                         int overlap_id = place_check[will_place];
+//                         action_bit = bit_calculation::high_add_bit(1,action_bit,id-1);
+//                         cout<<id<<"が行動不可 13"<<endl;
+//                         if(overlap_id < 10){
+//                             if(overlap_id > 0) {
+//                                 action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+//                                 cout<<id<<"が行動不可 15"<<endl;
+//                             }
+//                             else if(overlap_id < 0){
+//                                 action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+//                                 cout<<id<<"が行動不可 16"<<endl;
+//                             }
+//                         }
+//                     }
+//                     else place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+//                 }
+//             }
+//         }
+//         else if(id < 0){
+//             can = bit_calculation::high_return_bit(-1,-id-1,action_bit);
+//             if(can == false){
+//                 //Point agent_xy = getAgent_place(id);
+//                 if(action0[i].getActionType() == Action::actionType::Move){
+//                     int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+//                     if(place_check.find(will_place) != place_check.end()){
+//                         int overlap_id = place_check[will_place];
+//                         action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+//                         cout<<id<<"が行動不可 8"<<endl;
+//                         if(overlap_id < 10){
+//                             if(overlap_id > 0) {
+//                                 action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+//                                 cout<<overlap_id<<"が行動不可 9"<<endl;
+//                             }
+//                             else if(overlap_id < 0){
+//                                 action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+//                                 cout<<overlap_id<<"が行動不可 10"<<endl;
+//                             }
+//                         }
+//                     }
+//                     else{
+//                         place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+//                     }
+//                 }
+//                 if(action0[i].getActionType() == Action::actionType::Remove){
+//                     int will_place = ((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY());
+//                     if(place_check.find(will_place) != place_check.end()){
+//                         int overlap_id = place_check[will_place];
+//                         action_bit = bit_calculation::high_add_bit(-1,action_bit,(-id)-1);
+//                         cout<<id<<"が行動不可 14"<<endl;
+//                         if(overlap_id < 10){
+//                             if(overlap_id > 0) {
+//                                 action_bit = bit_calculation::high_add_bit(1,action_bit,overlap_id-1);
+//                                 cout<<id<<"が行動不可 15"<<endl;
+//                             }
+//                             else if(overlap_id < 0){
+//                                 action_bit = bit_calculation::high_add_bit(-1,action_bit,(-overlap_id)-1);
+//                                 cout<<id<<"が行動不可 16"<<endl;
+//                             }
+//                         }
+//                     }
+//                     else place_check[((agent_xy.getX()+action0[i].getDX())*100)+(agent_xy.getY()+action0[i].getDY())] = id;
+//                 }
+//             }
+//         }
+//     }
+//         //cout<<"ループ3"<<endl;
+//     for(int i = 0;i < number_agent;i++){
+//         int id =action0[i].getAgentID();
+//         Point agent_xy = getAgent_place(id);
+//         if(id > 0){
+//             //cout<< "id:"<<id<<" x:"<<agent_xy.getX()<<" y:"<<agent_xy.getY()<<" dx:"<<action0[i].getDX()<<" dy:"<<action0[i].getDY()<<endl;
+//             bool can = bit_calculation::high_return_bit(1,id-1,action_bit);
+//             if(can == false){
+//                 if(action0[i].getActionType() == Action::actionType::Move){
+//                     agent_xy.addDXDY(action0[i].getDX(),action0[i].getDY());
+//                     friend_place[id-1].setXY(agent_xy.getX(),agent_xy.getY());
+//                     set_one_tile(agent_type(id),agent_xy.getX(),agent_xy.getY());
+//                 }
+//                 if(action0[i].getActionType() == Action::actionType::Remove){
+//                     Point agent_xy = getAgent_place(id);
+//                     set_one_tile(0,agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY());
+//                 }
+//             }
+//         }
+//         else if(id < 0){
+//             bool can = bit_calculation::high_return_bit(-1,(-id)-1,action_bit);
+//             if(can == false){
+//                 if(action0[i].getActionType() == Action::actionType::Move){
+//                     //Point agent_xy = getAgent_place(id);
+//                     agent_xy.addDXDY(action0[i].getDX(),action0[i].getDY());
+//                     enemy_place[(-id)-1].setXY(agent_xy.getX(),agent_xy.getY());
+//                     set_one_tile(agent_type(id),agent_xy.getX(),agent_xy.getY());
+//                 }
+//                 if(action0[i].getActionType() == Action::actionType::Remove){
+//                     Point agent_xy = getAgent_place(id);
+//                     set_one_tile(0,agent_xy.getX()+action0[i].getDX(),agent_xy.getY()+action0[i].getDY());
+//                 }
+//             }
+//         } 
+
+//     }
+//     return action_bit;
+// }
 
 int Board::agent_type(int id)
 {
@@ -558,16 +993,35 @@ void Board::set_action(Action *act){
         action_pending[ID-1] = *act;
     if(ID<0)
         action_pending[num_agent+(-ID-1)] = *act;
+        //cout << "ID:" << ID << endl;
+        //cout << "wait_agent=";
+        //for(vector<int>::iterator i=wait_agent.begin();i!=wait_agent.end();i++){
+          //cout <<(*i) << ",";
+        //}
+        //cout << endl;
+
     vector<int>::iterator itr = std::find(wait_agent.begin(),wait_agent.end(),ID);
     if(itr != wait_agent.end())wait_agent.erase(itr);
     else cout<<"ちゃんとはいってない@set_action"<<endl;
+    delete act;//chikara追加
+    //chikara追加ここから
+    if(wait_agent.empty()==true){
+        //display();
+        //display_action();
+        int bit = action(action_pending,2*num_agent);
+        //move(action_pending);
+        //display();
+        for(int i=0;i<num_agent;i++) wait_agent.push_back(i+1);//chikara追加
+        for(int i=0;i<num_agent;i++) wait_agent.push_back(-i-1);//chikara追加
+    }
+    //chikara追加ここまで
 }
 
 void Board::pending_check(Action *act,int idx){
     set_action(act,idx);
     if(wait_agent.empty()==true){
         //display();
-        //display_action();        
+        //display_action();
         int bit = action(action_pending,2*num_agent);
         //move(action_pending);
         //display();
@@ -579,7 +1033,7 @@ void Board::pending_check(Action *act,int idx){
 int Board::count_score(){
     //勝ちか負けか判断するメソッド,勝ちの時は+,負けの時は-になる
       int friend_tile_point = tile_point(1);
-      int friend_area_point =calcAreaPoint(1); 
+      int friend_area_point =calcAreaPoint(1);
       int enemy_tile_point = tile_point(-1);
       int enemy_area_point = calcAreaPoint(-1);
       int friend_point = friend_tile_point + friend_area_point;
@@ -594,44 +1048,45 @@ void Board::move(Action play_action[])
 {
     cout<<"moveはじめ"<<endl;
     for(int i = 0;i < 2 * num_agent;i++){
-            if(play_action[i].getAgentID()>0){//chikara修正のため差し替え追加
-                int j=play_action[i].getAgentID()-1;//chikara追加
-                cout<<"味方"<<endl;
-                if(play_action[i].getActionType()==Action::actionType::Move){
-                    cout<<"Move"<<endl;
-                    friend_place[j].addDXDY(play_action[i].getDX(),play_action[i].getDY());
-                    set_one_tile(1,friend_place[j].getX(),friend_place[j].getY());
-                }
-                else if(play_action[i].getActionType()==Action::actionType::Remove){
-                    cout<<"Remove"<<endl;
-                    set_one_tile(0,friend_place[j].getX()+play_action[i].getDX(),friend_place[j].getY()+play_action[i].getDY());
-                }
-                else if(play_action[i].getActionType()==Action::actionType::Stay){
-                    //何もなし
-                    cout<<"Stay"<<endl;
-                }
+        if(play_action[i].getAgentID()>0){//chikara修正のため差し替え追加
+            int j=play_action[i].getAgentID()-1;//chikara追加
+            cout<<"味方"<<endl;
+            if(play_action[i].getActionType()==Action::actionType::Move){
+                cout<<"Move"<<endl;
+                friend_place[j].addDXDY(play_action[i].getDX(),play_action[i].getDY());
+                set_one_tile(1,friend_place[j].getX(),friend_place[j].getY());
             }
-            if(play_action[i].getAgentID()<0){//chikara修正のため差し替え追加
-                int j=-play_action[i].getAgentID()-1;//chikara追加
-                cout<<"敵"<<endl;
-                if(play_action[i].getActionType()==Action::actionType::Move){
-                    cout<<"Move"<<endl;
-                    enemy_place[j].addDXDY(play_action[i].getDX(),play_action[i].getDY());
-                    set_one_tile(-1,enemy_place[j].getX(),enemy_place[j].getY());
-                }
-                else if(play_action[i].getActionType()==Action::actionType::Remove){
-                    cout<<"Remove"<<endl;
-                    set_one_tile(0,enemy_place[j].getX()+play_action[i].getDX(),enemy_place[j].getY()+play_action[i].getDY());
-                }
-                else if(play_action[i].getActionType()==Action::actionType::Stay){
-                    //何もなし
-                    cout<<"Stay"<<endl;
-                }
+            else if(play_action[i].getActionType()==Action::actionType::Remove){
+                cout<<"Remove"<<endl;
+                set_one_tile(0,friend_place[j].getX()+play_action[i].getDX(),friend_place[j].getY()+play_action[i].getDY());
             }
+            else if(play_action[i].getActionType()==Action::actionType::Stay){
+                //何もなし
+                cout<<"Stay"<<endl;
+            }
+        }
+        if(play_action[i].getAgentID()<0){//chikara修正のため差し替え追加
+            int j=-play_action[i].getAgentID()-1;//chikara追加
+            cout<<"敵"<<endl;
+            if(play_action[i].getActionType()==Action::actionType::Move){
+                cout<<"Move"<<endl;
+                enemy_place[j].addDXDY(play_action[i].getDX(),play_action[i].getDY());
+                set_one_tile(-1,enemy_place[j].getX(),enemy_place[j].getY());
+            }
+            else if(play_action[i].getActionType()==Action::actionType::Remove){
+                cout<<"Remove"<<endl;
+                set_one_tile(0,enemy_place[j].getX()+play_action[i].getDX(),enemy_place[j].getY()+play_action[i].getDY());
+            }
+            else if(play_action[i].getActionType()==Action::actionType::Stay){
+                //何もなし
+                cout<<"Stay"<<endl;
+            }
+        }
     }
 }
 
 void Board::display_action(){//chikara:表示のしかたを変えた
+  /*
     cout << "action_pending[]=";
     for(int i=0;i<2*num_agent;i++){
         Action *at=&action_pending[i];
@@ -641,45 +1096,45 @@ void Board::display_action(){//chikara:表示のしかたを変えた
     cout << "wait_agent[]=";
     for(int i=0;i<wait_agent.size();i++){
       cout << wait_agent[i] << ";";
-    }
-    cout << endl;
+    } 
+    cout << endl;*/
 }
-/*
-int main(){
-    Board *board =jsonReceive::jsonRead(1,"A-1.json");
-    board->display();
-    Action action0[6];
-    action0[0].setAgentID(1);
-    action0[0].setActionType(Action::actionType::Move);
-    action0[0].setDX(-1);
-    action0[0].setDY(-1);
-    action0[1].setAgentID(2);
-    action0[1].setActionType(Action::actionType::Move);
-    action0[1].setDX(0);
-    action0[1].setDY(-1);
-    action0[2].setAgentID(3);
-    action0[2].setActionType(Action::actionType::Remove);
-    action0[2].setDX(1);
-    action0[2].setDY(1);
-    action0[3].setAgentID(-1);
-    action0[3].setActionType(Action::actionType::Move);
-    action0[3].setDX(-1);
-    action0[3].setDY(1);
-    action0[4].setAgentID(-2);
-    action0[4].setActionType(Action::actionType::Move);
-    action0[4].setDX(-1);
-    action0[4].setDY(-1);
-    action0[5].setAgentID(-3);
-    action0[5].setActionType(Action::actionType::Move);
-    action0[5].setDX(-1);
-    action0[5].setDY(-1);
-    int bit = board->action(action0,6);
-    cout<<endl;
-    board->display();
-    cout<<"\n"<<hex<<bit<<endl;
-    return 0;
-}
-*/
+
+// int main(){
+//     Board *board =jsonReceive::jsonRead(1,"A-1.json");
+//     board->display();
+//     Action action0[6];
+//     action0[0].setAgentID(1);
+//     action0[0].setActionType(Action::actionType::Move);
+//     action0[0].setDX(-1);
+//     action0[0].setDY(-1);
+//     action0[1].setAgentID(2);
+//     action0[1].setActionType(Action::actionType::Move);
+//     action0[1].setDX(0);
+//     action0[1].setDY(-1);
+//     action0[2].setAgentID(3);
+//     action0[2].setActionType(Action::actionType::Remove);
+//     action0[2].setDX(1);
+//     action0[2].setDY(1);
+//     action0[3].setAgentID(-1);
+//     action0[3].setActionType(Action::actionType::Move);
+//     action0[3].setDX(-1);
+//     action0[3].setDY(1);
+//     action0[4].setAgentID(-2);
+//     action0[4].setActionType(Action::actionType::Remove);
+//     action0[4].setDX(-1);
+//     action0[4].setDY(0);
+//     action0[5].setAgentID(-3);
+//     action0[5].setActionType(Action::actionType::Move);
+//     action0[5].setDX(-1);
+//     action0[5].setDY(-1);
+//     int bit = board->action(action0,6);
+//     cout<<endl;
+//     board->display();
+//     cout<<"\n"<<std::hex<<bit<<std::dec<<endl;
+//     return 0;
+// }
+
 /*int main(){
     Board *board =jsonReceive::jsonRead(1,"A-1.json");
     board->display();

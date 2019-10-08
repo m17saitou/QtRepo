@@ -27,7 +27,7 @@ class Monte_Carlo
       CHILD child[100];
       int child_games_sum; //子局面の回数の合計
     } NODE_FRIEND;
-    
+
     typedef struct node_enemy
     {
       int child_num; //子局面の数
@@ -39,11 +39,14 @@ class Monte_Carlo
     static int node_num_friend;        //現在登録しているノードの数
     static int node_num_enemy;        //現在登録しているノードの数
     static NODE_FRIEND node_friend[100]; //ノードの要素を格納
-    static NODE_ENEMY node_enemy[100]; //ノードの要素を格納 
+    static NODE_ENEMY node_enemy[100]; //ノードの要素を格納
 
-    static int playout(Board &board, int max_turn);
+    //static int playout(Board &board, int max_turn);//chikaraコメントアウト
+    static int playout(Board &board, int max_turn,int which_turn);//chikara修正のため差し替え追加
 
-    static vector<Action*> select_best_uct(Board &board,int which_turn);
+    //static vector<Action*> select_best_uct(Board &board,int which_turn);//chikaraコメントアウト
+    static vector<Action*> select_best_uct(Board &board,int which_turn,int remainingTurn);
     //static void add_child(NODE *pNode,Action action[]);
-    static int search_uct(int which_turn,Node* pN,Board &board);
+    //static int search_uct(int which_turn,Node* pN,Board &board);//chikaraコメントアウト
+    static int search_uct(int which_turn,Node* pN,Board &board,int remainingTurn);//chikara修正のため差し替え追加
 };

@@ -39,6 +39,7 @@ private:
     QLabel *enemyTileP;//敵チームのタイルポイント表示部分
     QLabel *ourPoint;//自チームの合計得点表示部分
     QLabel *enemyPoint;//敵チームの合計得点表示部分
+    QTableWidget *agentWhereXY;//右下に座標を表示していく表
     QTableWidget *boardDisplay;//盤面を表示する部分
     QPushButton *getJsonFile;
     QPushButton *startSearch;
