@@ -1,12 +1,13 @@
 #include <iostream>
 #include <cstdlib>
+#include <memory>
 #include "Agent-Action.hpp"
 #include "Board.hpp"
 //using namespace
 
 #include <json/json.h>
 
-string Action::createJson(Action *act,int num_act)
+std::string Action::createJson(Action *act,int num_act)
 {
     std::string jsonStr;
     Json::Value root,agents, agent, agentID, type, dx, dy;
@@ -15,7 +16,7 @@ string Action::createJson(Action *act,int num_act)
 
     for(int i=0;i<num_act;i++){
         agent["agentID"]=Board::getAIdL_to_G(act[i].getAgentID());
-        agent["type"]=act[i].getActTypeString();
+        agent["type"]=act[i].getActionType();
         agent["dx"]=act[i].getDX();
         agent["dy"]=act[i].getDY();
 
@@ -31,8 +32,8 @@ string Action::createJson(Action *act,int num_act)
     std::cout << "Json:\n" <<jsonStr <<std::endl;
     return jsonStr;
 }
-int main ()
-{
-//   createJson();
-}
-//g++ Action.cpp Board.cpp -ljsoncpp
+// int main ()
+// {
+// //   createJson();
+// }
+// //g++ Action.cpp Board.cpp -ljsoncpp

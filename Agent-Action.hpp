@@ -29,6 +29,7 @@ class Action{//エージェントの行動のクラス 他のプログラムと�
         int getDX(){return this->direction_X;};
         void setDY(int dy){this->direction_Y = dy;};
         int getDY(){return this->direction_Y;};
+        std::string createJson(Action *act,int num_act);
         std::string to_string(){//chikara:追加した
           std::stringstream ss;
           ss <<"[" << getAgentID() << ":";
