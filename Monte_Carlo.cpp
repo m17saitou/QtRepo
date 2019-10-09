@@ -1,5 +1,4 @@
 #include "Monte_Carlo.hpp"
-#include "BoardExpention.hpp"
 #include "jsonReceive.hpp"
 #include <stdlib.h>
 #include <cstdlib>
@@ -92,6 +91,7 @@ int Monte_Carlo::playout(Board &board, int max_turn,int which_turn)//chikara修�
       //return pCopy_board->count_score();//chikaraコメントアウト
 }
 
+
 vector<Action*> Monte_Carlo::select_best_uct(Board &board,int which_turn,int remainingTurn)//chikara::返り値のActionの実態はnewで作っているため使用後にdeleteが必要
 { //UCTを繰り返す関数//rootのノードを作成し、ある回数UCTを繰り返し、終わったら一番多く選ばれた手を返す
       Node* node = Node::create_node(which_turn,board);
@@ -114,17 +114,16 @@ vector<Action*> Monte_Carlo::select_best_uct(Board &board,int which_turn,int rem
             //best_action.push_back(action);//chikaraコメントアウト
       }
       return best_action;
-}
+}//agent全部探すやつ
 
-//int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board)//which_turnは1(味方)か-1(敵)のみをとる//chikaraコメントアウト
-int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTurn)//chikara修正のため差し替え追加
+int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTurn)
 { //UCBで手を選びプレイアウトを行う関数
   //全ての手の中でUCB値が一番高い手を選ぶ
   //未展開の手がある場合はそれを優先的に選ぶ
       //srand(time(NULL));//chikaraコメントアウト：こんなところで行わない、もっと上位で行う。
       //cout<<"乱数の種を用意@search_uct"<<endl;
       //pN->printChildren();
-      int select_id = 0;
+      int agentID = 0;
       int select_dxdy = -1;
       double max_ucb = -DBL_MAX;
       int cnt = 0;
@@ -155,7 +154,7 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
                               }
                               if(ucb > max_ucb){
                                      max_ucb = ucb;
-                                     select_id = i+1;//エージェントIDになる
+                                     agentID = i+1;//エージェントIDになる
                                      select_dxdy = j;
                                      select_c = c;
                                      //cout<<"ucbを更新"<<endl;
@@ -197,8 +196,8 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
                               //if(ucb<min_ucb){//chikara修正のため差し替え追加
                                      max_ucb = ucb;//chikaraコメントアウト
                                      //min_ucb=ucb;//chikara修正のため差し替え追加
-                                     //select_id = i-1;//chikaraコメントアウト
-                                     select_id=-i-1;//chikara修正のため差し替え追加
+                                     //agentID = i-1;//chikaraコメントアウト
+                                     agentID=-i-1;//chikara修正のため差し替え追加
                                      select_dxdy = j;
                                      select_c = c;
                                      //cout<<"ucbを更新"<<endl;
@@ -211,11 +210,11 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       if(select_dxdy ==-1) throw runtime_error("bestが選ばれない");
       //cout<<"actionを作り始める"<<endl;
       Action *action = new Action();//chikara:引数がフィールドの数だけあるコンストラクタを使ったほうが良いが保留
-      //cout << "select_id=" << select_id << endl;
+      //cout << "agentID=" << agentID << endl;
       //cout << "select_dxdy=" << select_dxdy << endl;
       //cout << "select_c=" << hex <<select_c << dec<< endl;
-      //cout << "key="<< (select_id>0 ? (select_id*17)+select_dxdy:(select_id*17)-select_dxdy) << endl;
-      action->setAgentID(select_id);
+      //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
+      action->setAgentID(agentID);
       //int action_type = select_dxdy / 17;//chikaraコメントアcウト
       int action_type = select_dxdy / 8;//chikara修正のため差し替え追加
       if(action_type == 0)action->setActionType(Action::actionType::Move);//stayは今の所ない
@@ -231,18 +230,14 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       if(select_c == nullptr){
             select_c =new Child();//chikara:select_cに変更
             int16_t key;//chikara追加
-            if(select_id>0) key=(select_id*17)+select_dxdy;//chikara追加
-            else if(select_id<0)key=(select_id*17)-select_dxdy;//chikara追加
-            else throw runtime_error("select_idが0");//chikara追加
-            //c->setAct((select_id*17)+select_dxdy);//chikaraコメントアウト
+            if(agentID>0) key=(agentID*17)+select_dxdy;//chikara追加
+            else if(agentID<0)key=(agentID*17)-select_dxdy;//chikara追加
+            else throw runtime_error("agentIDが0");//chikara追加
+            //c->setAct((agentID*17)+select_dxdy);//chikaraコメントアウト
             select_c->setAct(key);//chikara修正のため差し替え追加//chikara:select_cに変更
             pN->children.emplace(key,select_c);//chikara追加//chikara:select_cに変更
             //cout<<"手がないから作る"<<endl;
-      }/*else if(select_c->getNext() != nullptr){
-        cout << select_id<<";"<< select_dxdy<< "before playout::remainingTurn=" << remainingTurn << endl;
-        cout << std::hex << "getNext()=0x" << select_c->getNext() << std::dec << endl;
-        cout << std::hex << "active_agent=0x" << select_c->getNext()->get_active_agent() << std::dec << endl;
-      }*/
+      }
       //pN->printChildren();
       if(select_c->getGames() == 0){//chikara:select_cに変更
             //win = playout(board,30);//chikaraコメントアウト
@@ -254,7 +249,7 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
             if(select_c->getNext() == nullptr){//chikara追加ここから//chikara:select_cに変更
               Node* nxt=pN->create_node(-which_turn,board);
               //cout << std::hex << "create_node_nxt=0x" << nxt << std::dec << endl;
-              //cout << "key="<< (select_id>0 ? (select_id*17)+select_dxdy:(select_id*17)-select_dxdy) << endl;
+              //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
               //cout << "after create_node:remainingTurn=" << remainingTurn << endl;
               //cout << std::hex << "active_agent=0x" << nxt->get_active_agent() << std::dec << endl;
               select_c->setNext(nxt);//chikara:select_cに変更
@@ -272,16 +267,33 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       pN->add_game_sum();
       //cout<<"勝率とか色々更新"<<endl;
       return win;
-}
-/*
-int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTurn)//chikara修正のため差し替え追加
+}//agentぜんぶ
+
+Action* Monte_Carlo::select_best_uct_one(Board &board,int which_turn,int remainingTurn,int uct_loop,int agentID)//chikara::返り値のActionの実態はnewで作っているため使用後にdeleteが必要
+{ //UCTを繰り返す関数//rootのノードを作成し、ある回数UCTを繰り返し、終わったら一番多く選ばれた手を返す
+      srand(time(NULL));
+      Node* node = Node::create_node(which_turn,board);
+      Board* board_copy = board.overwrite_copy();
+      for(int i = 0;i < uct_loop;i++){
+            //cout <<"uct_loop_i=" << i<< endl;
+            //node->printChildren();
+            //cout <<"uct_loop_i=" << i<< endl;
+            //search_uct(which_turn,node,board);//chikaraコメントアウト
+            search_uct_one(which_turn,node,*board_copy,remainingTurn*Board::num_agent,agentID);//chikara修正のため差し替え追加
+            //which_turn*=(-1);//chikaraコメントアウト
+            board_copy->overwrite(board);
+      }
+      Action* best_action = node->select_best_agent_action(agentID);
+      return best_action;
+}//agent1つ
+
+
+int Monte_Carlo::search_uct_one(int which_turn,Node* pN,Board &board,int remainingTurn,int agentID)
 { //UCBで手を選びプレイアウトを行う関数
   //全ての手の中でUCB値が一番高い手を選ぶ
   //未展開の手がある場合はそれを優先的に選ぶ
-      //srand(time(NULL));//chikaraコメントアウト：こんなところで行わない、もっと上位で行う。
       //cout<<"乱数の種を用意@search_uct"<<endl;
       //pN->printChildren();
-      int select_id = 0;
       int select_dxdy = -1;
       double max_ucb = -DBL_MAX;
       int cnt = 0;
@@ -289,11 +301,168 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       Child* c;
       //cout << "remainingTurn=" << remainingTurn << endl;
       //cout << std::hex << "active_agent=0x" << pN->get_active_agent() << std::dec << endl;
-      if(which_turn == 1){//chikara:できるだけif(which_turn>0){にするほうがよい
+      if(agentID > 0){
+            //cout<<"which_turnが味方"<<endl;
+            double ucb = 0;
+            //cout << std::hex << "active_agent=0x" << pN->get_active_agent() << std::dec << endl;
+            for(int j=0;j<16;j++){
+                  if((pN->get_agent_bit(cnt) & (1<<j)) != 0){
+                        map<int16_t,Child*>::iterator i_children = pN->children.find(agentID*17+j);
+                        if(i_children == pN->children.end()){
+                              ucb = 10000 + rand();
+                              c = nullptr;
+                              //cout<<"手がない"<<endl;
+                        }
+                        else{
+                              c = i_children->second;
+                              const double W = 0.31;
+                              ucb = c->getRate() + W*sqrt(log(pN->get_game_sum())/c->getGames());
+                              //cout<<"手がある"<<endl;
+                        }
+                        if(ucb > max_ucb){
+                               max_ucb = ucb;
+                               select_dxdy = j;
+                               select_c = c;
+                               //cout<<"ucbを更新"<<endl;
+                        }
+                  }
+            }
+      }
+      else if(agentID < 0){
+            //cout<<"which_turnが味方"<<endl;
+            double ucb = 0;
+            //cout << std::hex << "active_agent=0x" << pN->get_active_agent() << std::dec << endl;
+            for(int j=0;j<16;j++){
+                  if((pN->get_agent_bit(cnt) & (1<<j)) != 0){
+                        map<int16_t,Child*>::iterator i_children = pN->children.find(agentID*17+j);
+                        if(i_children == pN->children.end()){
+                              ucb = 10000 + rand();
+                              c = nullptr;
+                              //cout<<"手がない"<<endl;
+                        }
+                        else{
+                              c = i_children->second;
+                              const double W = 0.31;
+                              ucb = c->getRate() + W*sqrt(log(pN->get_game_sum())/c->getGames());
+                              //cout<<"手がある"<<endl;
+                        }
+                        if(ucb > max_ucb){
+                               max_ucb = ucb;
+                               select_dxdy = j;
+                               select_c = c;
+                               //cout<<"ucbを更新"<<endl;
+                        }
+                  }
+            }
+      }
+      if(select_dxdy ==-1) throw runtime_error("bestが選ばれない");
+      //cout<<"actionを作り始める"<<endl;
+      Action *action = new Action();//chikara:引数がフィールドの数だけあるコンストラクタを使ったほうが良いが保留
+      //cout << "agentID=" << agentID << endl;
+      //cout << "select_dxdy=" << select_dxdy << endl;
+      //cout << "select_c=" << hex <<select_c << dec<< endl;
+      //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
+      action->setAgentID(agentID);
+      int action_type = select_dxdy / 8;
+      if(action_type == 0)action->setActionType(Action::actionType::Move);//stayは今の所ない
+      else if(action_type == 1)action->setActionType(Action::actionType::Remove);//chikara::stayの場合も書くべき、そのうちバグの原因になる
+      else if(action_type == 2)action->setActionType(Action::actionType::Stay);
+      action->setDX(Board::dx_dy[select_dxdy%8].getX());
+      action->setDY(Board::dx_dy[select_dxdy%8].getY());
+      //cout<<"action作り終わる"<<endl;
+      board.set_action(action);
+      //cout<<"set_actionを呼ぶ"<<endl;
+      int win;
+      if(select_c == nullptr){
+            select_c =new Child();//chikara:select_cに変更
+            int16_t key;//chikara追加
+            if(agentID>0) key=(agentID*17)+select_dxdy;//chikara追加
+            else if(agentID<0)key=(agentID*17)-select_dxdy;//chikara追加
+            else throw runtime_error("agentIDが0");//chikara追加
+            //c->setAct((agentID*17)+select_dxdy);//chikaraコメントアウト
+            select_c->setAct(key);//chikara修正のため差し替え追加//chikara:select_cに変更
+            pN->children.emplace(key,select_c);//chikara追加//chikara:select_cに変更
+            //cout<<"手がないから作る"<<endl;
+      }
+      //pN->printChildren();
+      if(select_c->getGames() == 0){//chikara:select_cに変更
+            //win = playout(board,30);//chikaraコメントアウト
+            win = -playout(board,remainingTurn-1,-which_turn);//chikara修正のため差し替え追加
+            //cout<<"回数0回"<<endl;
+      }
+      else{
+            //if(c->getNext() == NULL) c->setNext(pN->create_node(-which_turn,board));//chikaraコメントアウト
+            if(select_c->getNext() == nullptr){//chikara追加ここから//chikara:select_cに変更
+              Node* nxt=pN->create_node(-which_turn,board);
+              //cout << std::hex << "create_node_nxt=0x" << nxt << std::dec << endl;
+              //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
+              //cout << "after create_node:remainingTurn=" << remainingTurn << endl;
+              //cout << std::hex << "active_agent=0x" << nxt->get_active_agent() << std::dec << endl;
+              select_c->setNext(nxt);//chikara:select_cに変更
+              //cout << std::hex << "getNext()=0x" << select_c->getNext() << std::dec << endl;
+            }//chikara追加ここまで
+            //win = -search_uct(-which_turn,pN,board);//chikaraコメントアウト
+            //cout << "0remainingTurn=" << remainingTurn << endl;
+            //cout << std::hex << "getNext()=" << select_c->getNext() << std::dec << endl;
+            //cout << std::hex << "active_agent=0x" << select_c->getNext()->get_active_agent() << std::dec << endl;
+            win = -search_uct(-which_turn,select_c->getNext(),board,remainingTurn-1);//chikara修正のため差し替え追加//chikara:select_cに変更
+            //cout<<"回数1回以上"<<endl;
+      }
+      select_c->setRate((select_c->getRate() * select_c->getGames() + win)/(select_c->getGames() + 1));//chikara:select_cに変更
+      select_c->addGames();//chikara:select_cに変更
+      pN->add_game_sum();
+      //cout<<"勝率とか色々更新"<<endl;
+      return win;
+}//agent1つ
+
+vector<Action*> Monte_Carlo::select_best_uct_select(Board &board,int which_turn,int remainingTurn,int uct_loop,uint16_t agent_bit)//chikara::返り値のActionの実態はnewで作っているため使用後にdeleteが必要
+{ //UCTを繰り返す関数//rootのノードを作成し、ある回数UCTを繰り返し、終わったら一番多く選ばれた手を返す
+      Node* node = Node::create_node(which_turn,board);
+      Board* board_copy = board.overwrite_copy();
+      for(int i = 0;i < uct_loop;i++){
+            //cout <<"uct_loop_i=" << i<< endl;
+            //node->printChildren();
+            //cout <<"uct_loop_i=" << i<< endl;
+            //search_uct(which_turn,node,board);//chikaraコメントアウト
+            search_uct_select(which_turn,node,*board_copy,remainingTurn*Board::num_agent,agent_bit);//chikara修正のため差し替え追加
+            //which_turn*=(-1);//chikaraコメントアウト
+            board_copy->overwrite(board);
+      }
+      vector<Action*> best_action;
+      int cnt = 0;
+      for(int i = 0;i < Board::num_agent;i++){
+            if(!((1<<i) & agent_bit))continue;
+            Action* action = node->select_best_agent_action(i+1);
+            best_action.push_back(action);
+            cnt++;
+            //action = node->select_best_agent_action(-i-1);//chikaraコメントアウト
+            //best_action.push_back(action);//chikaraコメントアウト
+      }
+      return best_action;
+}//agent指定
+
+
+int Monte_Carlo::search_uct_select(int which_turn,Node* pN,Board &board,int remainingTurn,uint16_t agent_bit)
+{ //UCBで手を選びプレイアウトを行う関数
+  //全ての手の中でUCB値が一番高い手を選ぶ
+  //未展開の手がある場合はそれを優先的に選ぶ
+      //srand(time(NULL));//chikaraコメントアウト：こんなところで行わない、もっと上位で行う。
+      //cout<<"乱数の種を用意@search_uct"<<endl;
+      //pN->printChildren();
+      int agentID = 0;
+      int select_dxdy = -1;
+      double max_ucb = -DBL_MAX;
+      int cnt = 0;
+      Child* select_c;
+      Child* c;
+      //cout << "remainingTurn=" << remainingTurn << endl;
+      //cout << std::hex << "active_agent=0x" << pN->get_active_agent() << std::dec << endl;
+      if(which_turn > 0){//chikara:できるだけif(which_turn>0){にするほうがよい
             //cout<<"which_turnが味方"<<endl;
             for(int i=0;i<board.num_agent;i++){
                   double ucb = 0;
                   //cout << std::hex << "active_agent=0x" << pN->get_active_agent() << std::dec << endl;
+                  if(!((1<<i) & agent_bit))continue;
                   if(!bit_calculation::low_return_bit(i,pN->get_active_agent()))continue;
                   for(int j=0;j<16;j++){
                         //if(pN->get_agent_bit(cnt) & (1<<j) != 0){//chikaraコメントアウト
@@ -312,7 +481,7 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
                               }
                               if(ucb > max_ucb){
                                      max_ucb = ucb;
-                                     select_id = i+1;//エージェントIDになる
+                                     agentID = i+1;//エージェントIDになる
                                      select_dxdy = j;
                                      select_c = c;
                                      //cout<<"ucbを更新"<<endl;
@@ -322,12 +491,13 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
                   cnt++;
             }
       }
-      else if(which_turn == -1){//chikara:できるだけif(which_turn<0){にするほうがよい
+      else if(which_turn < 0){//chikara:できるだけif(which_turn<0){にするほうがよい
            // cout<<"which_turnが敵"<<endl;
            //cout <<"min_ucb=" << min_ucb << endl;
             for(int i=0;i<board.num_agent;i++){
                   double ucb = 0;
                   //cout <<i<<";;;0x"<< hex << pN->get_active_agent()<<dec<<endl;
+                  if(!((1<<(i+8)) & agent_bit))continue;
                   if(!bit_calculation::low_return_bit(i+8,pN->get_active_agent()))continue;//chikara:+8を追加
                   for(int j=0;j<16;j++){
                     //cout <<i<<";;"<<j<< endl;
@@ -354,8 +524,8 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
                               //if(ucb<min_ucb){//chikara修正のため差し替え追加
                                      max_ucb = ucb;//chikaraコメントアウト
                                      //min_ucb=ucb;//chikara修正のため差し替え追加
-                                     //select_id = i-1;//chikaraコメントアウト
-                                     select_id=-i-1;//chikara修正のため差し替え追加
+                                     //agentID = i-1;//chikaraコメントアウト
+                                     agentID=-i-1;//chikara修正のため差し替え追加
                                      select_dxdy = j;
                                      select_c = c;
                                      //cout<<"ucbを更新"<<endl;
@@ -368,11 +538,11 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       if(select_dxdy ==-1) throw runtime_error("bestが選ばれない");
       //cout<<"actionを作り始める"<<endl;
       Action *action = new Action();//chikara:引数がフィールドの数だけあるコンストラクタを使ったほうが良いが保留
-      //cout << "select_id=" << select_id << endl;
+      //cout << "agentID=" << agentID << endl;
       //cout << "select_dxdy=" << select_dxdy << endl;
       //cout << "select_c=" << hex <<select_c << dec<< endl;
-      //cout << "key="<< (select_id>0 ? (select_id*17)+select_dxdy:(select_id*17)-select_dxdy) << endl;
-      action->setAgentID(select_id);
+      //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
+      action->setAgentID(agentID);
       //int action_type = select_dxdy / 17;//chikaraコメントアcウト
       int action_type = select_dxdy / 8;//chikara修正のため差し替え追加
       if(action_type == 0)action->setActionType(Action::actionType::Move);//stayは今の所ない
@@ -388,18 +558,14 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       if(select_c == nullptr){
             select_c =new Child();//chikara:select_cに変更
             int16_t key;//chikara追加
-            if(select_id>0) key=(select_id*17)+select_dxdy;//chikara追加
-            else if(select_id<0)key=(select_id*17)-select_dxdy;//chikara追加
-            else throw runtime_error("select_idが0");//chikara追加
-            //c->setAct((select_id*17)+select_dxdy);//chikaraコメントアウト
+            if(agentID>0) key=(agentID*17)+select_dxdy;//chikara追加
+            else if(agentID<0)key=(agentID*17)-select_dxdy;//chikara追加
+            else throw runtime_error("agentIDが0");//chikara追加
+            //c->setAct((agentID*17)+select_dxdy);//chikaraコメントアウト
             select_c->setAct(key);//chikara修正のため差し替え追加//chikara:select_cに変更
             pN->children.emplace(key,select_c);//chikara追加//chikara:select_cに変更
             //cout<<"手がないから作る"<<endl;
-      }/*else if(select_c->getNext() != nullptr){
-        cout << select_id<<";"<< select_dxdy<< "before playout::remainingTurn=" << remainingTurn << endl;
-        cout << std::hex << "getNext()=0x" << select_c->getNext() << std::dec << endl;
-        cout << std::hex << "active_agent=0x" << select_c->getNext()->get_active_agent() << std::dec << endl;
-      }*/
+      }
       //pN->printChildren();
       if(select_c->getGames() == 0){//chikara:select_cに変更
             //win = playout(board,30);//chikaraコメントアウト
@@ -411,7 +577,7 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
             if(select_c->getNext() == nullptr){//chikara追加ここから//chikara:select_cに変更
               Node* nxt=pN->create_node(-which_turn,board);
               //cout << std::hex << "create_node_nxt=0x" << nxt << std::dec << endl;
-              //cout << "key="<< (select_id>0 ? (select_id*17)+select_dxdy:(select_id*17)-select_dxdy) << endl;
+              //cout << "key="<< (agentID>0 ? (agentID*17)+select_dxdy:(agentID*17)-select_dxdy) << endl;
               //cout << "after create_node:remainingTurn=" << remainingTurn << endl;
               //cout << std::hex << "active_agent=0x" << nxt->get_active_agent() << std::dec << endl;
               select_c->setNext(nxt);//chikara:select_cに変更
@@ -429,8 +595,12 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
       pN->add_game_sum();
       //cout<<"勝率とか色々更新"<<endl;
       return win;
-}
-*/
+}//agent指定
+
+
+
+
+
 
 /*int main(){//playout用動作確認用
       cout<<"はじめ\n";
@@ -451,17 +621,17 @@ int main(){
 }
 */
 
-int main(){
-      Board *board = jsonReceive::jsonRead(1,"A-1.json");
-      auto start = std::chrono::system_clock::now();
+// int main(){
+//       Board *board = jsonReceive::jsonRead(1,"A-1.json");
+//       auto start = std::chrono::system_clock::now();
 
-      //vector<Action*> action = Monte_Carlo::select_best_uct(*board,1);//chikaraコメントアウト
-      vector<Action*> action = Monte_Carlo::select_best_uct(*board,1,30);//chikara修正のため差し替え追加
-      for(int i=0;i<action.size();i++) cout << action[i]->to_string() << endl;//chikara追加
-      board->display();//chikara追加
-      auto end = std::chrono::system_clock::now();
-      auto sub = end - start;
-      auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(sub).count();
-      cout << msec << endl;
-      return 0;
-}
+//       //vector<Action*> action = Monte_Carlo::select_best_uct(*board,1);//chikaraコメントアウト
+//       vector<Action*> action = Monte_Carlo::select_best_uct_select(*board,1,30,1000,0b101);//chikara修正のため差し替え追加 
+//       for(int i = 0; i< action.size();i++)cout << action[i]->to_string() << endl;//chikara追加
+//       board->display();//chikara追加
+//       auto end = std::chrono::system_clock::now();
+//       auto sub = end - start;
+//       auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(sub).count();
+//       cout << msec << endl;
+//       return 0;
+// }

@@ -44,9 +44,12 @@ class Monte_Carlo
     //static int playout(Board &board, int max_turn);//chikaraコメントアウト
     static int playout(Board &board, int max_turn,int which_turn);//chikara修正のため差し替え追加
 
-    //static vector<Action*> select_best_uct(Board &board,int which_turn);//chikaraコメントアウト
     static vector<Action*> select_best_uct(Board &board,int which_turn,int remainingTurn);
+    static Action* select_best_uct_one(Board &board,int which_turn,int remainingTurn,int uct_loop,int agentID);
+    static vector<Action*> select_best_uct_select(Board &board,int which_turn,int remainingTurn,int uct_loop,uint16_t agent_bit);
     //static void add_child(NODE *pNode,Action action[]);
     //static int search_uct(int which_turn,Node* pN,Board &board);//chikaraコメントアウト
-    static int search_uct(int which_turn,Node* pN,Board &board,int remainingTurn);//chikara修正のため差し替え追加
+    static int search_uct(int which_turn,Node* pN,Board &board,int remainingTurn);
+    static int search_uct_one(int which_turn,Node* pN,Board &board,int remainingTurn,int agentID);
+    static int search_uct_select(int which_turn,Node* pN,Board &board,int remainingTurn,uint16_t agent_bit);    
 };

@@ -1,14 +1,18 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "task.hpp"
 #include <QtWidgets/QMainWindow>
 
+class Action;
+class Monte_Carlo;
 class Board;
 class jsonReceive;
 class QLabel;
 class QString;
 class QPushButton;
 class QTableWidget;
+class QColor;
 
 class MainWindow : public QMainWindow
 {
@@ -18,6 +22,7 @@ public:
     int ourTID;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    static std::vector<Action> map (const Task& t);
 
 private:
     Board *forDisplayBoard;

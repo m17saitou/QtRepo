@@ -4,13 +4,16 @@ Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
 */
 #include "mainwindow.h"
 #include "jsonReceive.hpp"
+#include "Monte_Carlo.hpp"
 #include "Board.hpp"
+#include "task.hpp"
 #include <stdio.h>
 #include <map>
 #include <string>
 #include <QtGui>
 #include <iostream>
 #include <QString>
+#include <QColor>
 #include <QtWidgets/QtWidgets>
 #include <QCoreApplication>
 #include <QtWidgets/QTableWidget>
@@ -48,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
         boardDisplay->setRowHeight(i,30);
         boardDisplay->setColumnWidth(i,30);
         for(int j=0;j<20;j++){
-            boardDisplay->setCellWidget(i, j, new QTableWidgetItem());
+            boardDisplay->setCellWidget(i, j, new QLabel());
         }
     }
     boardDisplay->setSelectionMode(QAbstractItemView::NoSelection);
@@ -195,7 +198,7 @@ void MainWindow::getJson(){
                 }
                 else boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #00bfff");
             }//敵のマス 背景色青色
-            boardDisplay->cellWidget(y,x)->setAlignment(Qt::AlignCenter);
+            ((QLabel*)(boardDisplay->cellWidget(y,x)))->setAlignment(Qt::AlignCenter);
             ((QLabel*)(boardDisplay->cellWidget(y,x)))-> setText(*tileP);
             ourChar = 64,enemyChar = 96;
         }
@@ -216,6 +219,11 @@ void MainWindow::getJson(){
 }
 void MainWindow::startSearching(){
     std::cout << jsonNameStr << "\n";
+
+}
+
+std::vector<Action*> map (const Task& t){
+    return Monte_Carlo::select_best_uct_select(static_cast<Board&>(*(t.getTaskBoard())),1,static_cast<int>(t.getGameTurn()),t.getUctLoop(),t.getSearchAgentID());//引数の変更に応じて更新すること
 }
 
 MainWindow::~MainWindow()
