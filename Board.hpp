@@ -105,6 +105,7 @@ public:
     vector<int> wait_agent;
     void set_action(Action* act,int idx);
     void set_action(Action* act);
+    void set_action(Action &act);
     void pending_check(Action *act,int idx);
     int count_score();
     void move(Action play_action[]);

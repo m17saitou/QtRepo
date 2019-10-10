@@ -3,21 +3,7 @@ Qt version 4.8.7
 Include Path : /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
 */
 #include "mainwindow.h"
-#include "jsonReceive.hpp"
-#include "Monte_Carlo.hpp"
-#include "Board.hpp"
-#include "task.hpp"
-#include <stdio.h>
-#include <map>
-#include <string>
-#include <QtGui>
-#include <iostream>
-#include <QString>
-#include <QColor>
-#include <QtWidgets/QtWidgets>
-#include <QCoreApplication>
-#include <QtWidgets/QTableWidget>
-#include <QtWidgets/QSizePolicy>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -42,6 +28,9 @@ MainWindow::MainWindow(QWidget *parent)
     enemyAreaP = new QLabel("0");
     ourPoint = new QLabel("0");
     enemyPoint = new QLabel("0");
+
+    timerSearch = new QTimer(this);
+    connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
 
     boardDisplay = new QTableWidget(20,20,this);
     boardDisplay->setFixedSize(622,624);
@@ -218,12 +207,38 @@ void MainWindow::getJson(){
     return;
 }
 void MainWindow::startSearching(){
-    std::cout << jsonNameStr << "\n";
-
+    QVector <Task> taskArr;
+    for(int i=0;i<1/*forDisplayBoard->num_agent*/;i++){
+        Task t = Task(forDisplayBoard,30,1000,2);
+        taskArr.append(t);
+    }
+    ret = QtConcurrent::mappedReduced(taskArr,map, reduce, QtConcurrent::SequentialReduce);
+    timerSearch->start(1000);
 }
 
-std::vector<Action*> map (const Task& t){
+std::vector<Action> MainWindow::map (const Task& t){
     return Monte_Carlo::select_best_uct_select(static_cast<Board&>(*(t.getTaskBoard())),1,static_cast<int>(t.getGameTurn()),t.getUctLoop(),t.getSearchAgentID());//引数の変更に応じて更新すること
+}
+
+void MainWindow::reduce(std::vector<Action>& finalActs,const std::vector<Action> &result){
+    std::copy(result.begin(), result.end(), std::back_inserter(finalActs));
+    //finalActs.push_back(result.size());
+}
+
+void MainWindow::timeUP (){
+    std::cout << "TimeUP\n";
+    std::vector<Action> outPutArr;
+    if(ret.isFinished()==true){
+        if(ret.resultCount()>0){
+            outPutArr =  ret.result();
+            for(int i=0;i<outPutArr.size();i++){
+                std::cout << outPutArr[i].to_string()<<std::endl;
+            }
+            std::cout << Action::createJson(outPutArr)<<std::endl;
+        }
+        timerSearch->stop();
+    }
+    
 }
 
 MainWindow::~MainWindow()

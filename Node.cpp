@@ -19,13 +19,13 @@ Node* Node::create_node(int which_turn,Board &board)//which_turn:1は味方で,-
         //cout<<type<<endl;
         if(Board::agent_type(type)!= which_turn) continue;
         if(type > 0){
-            bit = bit_calculation::high_add_bit(which_turn,bit,type-1);
-            //bit |= (UINT16_C(1)<<(type-1));
+            //bit = bit_calculation::high_add_bit(which_turn,bit,type-1);
+            bit |= (UINT16_C(1)<<(type-1));
         }
         else if(type < 0){
             //cout << i << ":"<<(-type-1+8) << endl;
-            bit = bit_calculation::high_add_bit(which_turn,bit,-type-1);
-            //bit |= (UINT16_C(0x100)<<(-type-1));
+            //bit = bit_calculation::high_add_bit(which_turn,bit,-type-1);
+            bit |= (UINT16_C(0x100)<<(-type-1));
         }
         cnt++;
     }
@@ -43,12 +43,12 @@ Node* Node::create_node(int which_turn,Board &board)//which_turn:1は味方で,-
                 if(board.invalid_check(i+1,j)){//agentID=i+1,action番号=j
                     //cout<<"i:"<<i<<" j:"<<j<<endl;
                     bit = bit_calculation::low_add_bit(bit,j);//動けるビットを立てる
-                    //cout<<"bit:"<<hex<<bit<<endl;
+                    //cout<<"bit:"<<hex<<bit<<dec<<endl;
                 }
             }
             //cout<<"bit:"<<hex<<bit<<" cnt:"<<cnt<<endl;
             new_node->set_agent_bit(bit,cnt);//動けるエージェントのcnt番目の動けるアクションを表す値を保存する
-             cnt++;
+            cnt++;
         }
     }
     if(which_turn == -1){
@@ -66,7 +66,7 @@ Node* Node::create_node(int which_turn,Board &board)//which_turn:1は味方で,-
     }
     return new_node;
 }
-Action* Node::select_best_agent_action(int id){
+Action Node::select_best_agent_action(int id){
     double best_rate = -DBL_MAX;
     int best_dxdy = -1;
     //cout << "children=";
@@ -102,19 +102,19 @@ Action* Node::select_best_agent_action(int id){
         }
     }
     if(best_dxdy==-1) throw runtime_error("bestが選ばれない");
-    Action* action = new Action();//chikara:引数がフィールドの数だけあるコンストラクタを使ったほうが良いが保留
-    action->setAgentID(id);
+    Action action = Action();//chikara:引数がフィールドの数だけあるコンストラクタを使ったほうが良いが保留
+    action.setAgentID(id);
     //cout << "id=" << id << endl;
     //cout << "best_dxdy=" <<best_dxdy << endl;
     //int action_type = best_dxdy / 17;//chikaraコメントアウト
     int action_type = best_dxdy / 8;//chikara修正のため差し替え追加
-    if(action_type == 0)action->setActionType(Action::actionType::Move);//stayは今の所ない
-    else if(action_type == 1)action->setActionType(Action::actionType::Remove);//chikara::stayの場合も書くべき、そのうちバグの原因になる
+    if(action_type == 0)action.setActionType(Action::actionType::Move);//stayは今の所ない
+    else if(action_type == 1)action.setActionType(Action::actionType::Remove);//chikara::stayの場合も書くべき、そのうちバグの原因になる
     //action->setDX(Board::dx_dy[best_dxdy/2].getX());//chikaraコメントアウト
     //action->setDY(Board::dx_dy[best_dxdy/2].getY());//chikaraコメントアウト
     //cout <<"("<< Board::dx_dy[best_dxdy%8].getX() <<"," << Board::dx_dy[best_dxdy%8].getY() <<")" << endl;
-    action->setDX(Board::dx_dy[best_dxdy%8].getX());//chikara修正のため差し替え追加
-    action->setDY(Board::dx_dy[best_dxdy%8].getY());//chikara修正のため差し替え追加
+    action.setDX(Board::dx_dy[best_dxdy%8].getX());//chikara修正のため差し替え追加
+    action.setDY(Board::dx_dy[best_dxdy%8].getY());//chikara修正のため差し替え追加
     return action;
 }
 

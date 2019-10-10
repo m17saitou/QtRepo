@@ -99,7 +99,7 @@ class Node{
     }
 
     static Node* create_node(int which_turn,Board &board);
-    Action* select_best_agent_action(int id);
+    Action select_best_agent_action(int id);
 
     void print_agent_bit(){
         int cnt=0;

@@ -39,3 +39,4 @@ SOURCES += Action.cpp \
 QT += widgets
 QT += core
 CONFIG += console
+QT += concurrent
