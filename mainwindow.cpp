@@ -270,6 +270,42 @@ void MainWindow::onPostFinished(QNetworkReply* reply){
     cout <<"replay="<< str.toStdString()<< endl;
 }
 
+void  MainWindow::downloadBoard(){
+    std::cout << "downloadBoard" << std::endl;
+    QString matchID=MainWindow::matcheditID->text();
+    QUrl url = QUrl(serverURLStr+"/matches/"+matchID+"/");
+    QNetworkAccessManager * mgr = new QNetworkAccessManager(this);
+    QNetworkRequest request(url);
+    QString currentToken="procon30_example_token"; //"553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
+    connect(mgr, SIGNAL(finished(QNetworkReply*)), this, SLOT(onGetBoardJSONFinished(QNetworkReply*)));//送信が終わったときにonPostFinish(QNetworkReply* reply)が呼ばれる
+    //request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
+    request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
+    mgr->get(request);
+}
+
+void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
+
+    QString str;
+    if(reply->error() == QNetworkReply::NoError)
+    {
+        QFile file;
+        file.setFileName("download.json");
+        if (!file.open(QIODevice::WriteOnly)) return;
+        str = tr("ダウンロード正常終了");
+        QByteArray bytes = reply->readAll();
+        QString boardJSONstr = QString::fromUtf8(bytes.data(), bytes.size());
+        cout <<"replay="<< boardJSONstr.toStdString()<< endl;
+        file.write(bytes);
+        file.close();
+    }
+    else
+    {
+        str = reply->errorString();
+        str +=  tr( "    ダウンロード異常終了" );
+    }
+    cout << str.toStdString()<< endl;
+}
+
 MainWindow::~MainWindow()
 {
 

@@ -25,6 +25,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QNetworkReply>
 
 class Action;
 class QLineEdit;
@@ -37,6 +38,7 @@ class QPushButton;
 class QTableWidget;
 class QColor;
 class QTimer;
+class QNetworkReply;
 class QNetworkAccessManager;
 
 class MainWindow : public QMainWindow
@@ -54,6 +56,8 @@ public:
     static std::vector<Action> map (const Task& t);
     static void reduce(std::vector<Action>& finalActs,const std::vector<Action>& result);
     int uploadActJson();
+    void downloadBoard();
+    void onGetBoardJSONFinished(QNetworkReply* reply);
 private:
     Board *forDisplayBoard;
     QTimer *timerSearch;
