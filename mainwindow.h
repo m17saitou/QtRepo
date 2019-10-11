@@ -62,7 +62,7 @@ private:
     Board *forDisplayBoard;
     QTimer *timerSearch;
     QLabel *ourTeamID;
-    QLabel *ourTeamID_Num;
+    QLineEdit *ourTeamID_Num;
     QLabel *turn;
     QLabel *ourColor;
     QLabel *turn_Num;

@@ -10,10 +10,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     QStringList argStr = QCoreApplication::arguments();
     serverURLStr = "http://localhost:8081";
-    bool ok;
-    ourTID = argStr.value(1).toInt(&ok,10);//コマンドライン引数からのチームID読み込み
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
-    ourTeamID_Num = new QLabel("0");
+    ourTeamID_Num = new QLineEdit("0");
     turn = new QLabel(tr("Turn"));//盤面のターン表示Label
     turn_Num = new QLabel("0");
     ourColor = new QLabel("Our TeamColor : Pink");
@@ -150,7 +148,7 @@ void MainWindow::getJson(){
     if(!jsonDialogName.isEmpty()){
         jsonNameStr = jsonDialogName.toUtf8().constData();
     }
-    forDisplayBoard = jsonReceive::jsonRead(ourTID,jsonNameStr);
+    forDisplayBoard = jsonReceive::jsonRead(ourTeamID_Num->text().toInt(nullptr,10),jsonNameStr);
 
     std::map <int , int> xyToAgentID;
     for(int i=0;i<forDisplayBoard->num_agent;i++){
@@ -198,7 +196,6 @@ void MainWindow::getJson(){
             ourChar = 64,enemyChar = 96;
         }
     }
-    ourTeamID_Num->setNum(forDisplayBoard->getAIdL_to_G(1));
     turn_Num->setNum(forDisplayBoard->turn);
     int ourAP = forDisplayBoard->calcAreaPoint(1),
         enmAP = forDisplayBoard->calcAreaPoint(-1);
