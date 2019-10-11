@@ -18,11 +18,16 @@
 #include <QtConcurrent>
 #include <QtWidgets/QtWidgets>
 #include <QCoreApplication>
+#include <QLineEdit>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QSizePolicy>
 #include <QtWidgets/QMainWindow>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 
 class Action;
+class QLineEdit;
 class Monte_Carlo;
 class Board;
 class jsonReceive;
@@ -32,6 +37,7 @@ class QPushButton;
 class QTableWidget;
 class QColor;
 class QTimer;
+class QNetworkAccessManager;
 
 class MainWindow : public QMainWindow
 {
@@ -43,12 +49,13 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QString postAgentAct;
+    QString serverURLStr;
+    std::string jsonNameStr;
     static std::vector<Action> map (const Task& t);
     static void reduce(std::vector<Action>& finalActs,const std::vector<Action>& result);
-
+    int uploadActJson();
 private:
     Board *forDisplayBoard;
-    std::string jsonNameStr;
     QTimer *timerSearch;
     QLabel *ourTeamID;
     QLabel *ourTeamID_Num;
@@ -67,6 +74,8 @@ private:
     QLabel *enemyTileP;//敵チームのタイルポイント表示部分
     QLabel *ourPoint;//自チームの合計得点表示部分
     QLabel *enemyPoint;//敵チームの合計得点表示部分
+    QLabel *MatchID;
+    QLineEdit *matcheditID;//試合番号を入力する部分
     QTableWidget *agentWhereXY;//右下に座標を表示していく表
     QTableWidget *boardDisplay;//盤面を表示する部分
     QPushButton *getJsonFile;
@@ -76,6 +85,7 @@ private slots:
     void getJson();
     void startSearching();
     void timeUP();
+    void onPostFinished(QNetworkReply*);
 };
 
 #endif // MAINWINDOW_H

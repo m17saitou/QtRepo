@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     QStringList argStr = QCoreApplication::arguments();
+    serverURLStr = "http://localhost:8081";
     bool ok;
     ourTID = argStr.value(1).toInt(&ok,10);//コマンドライン引数からのチームID読み込み
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
@@ -28,6 +29,8 @@ MainWindow::MainWindow(QWidget *parent)
     enemyAreaP = new QLabel("0");
     ourPoint = new QLabel("0");
     enemyPoint = new QLabel("0");
+    MatchID = new QLabel("MatchID : ");
+    matcheditID = new QLineEdit("0",nullptr);
 
     timerSearch = new QTimer(this);
     connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
@@ -81,6 +84,9 @@ MainWindow::MainWindow(QWidget *parent)
     topArea->addWidget(turn_Num);
     topArea->addStretch();
     topArea->addWidget(ourColor);
+    topArea->addStretch();
+    topArea->addWidget(MatchID);
+    topArea->addWidget(matcheditID);
     QVBoxLayout *leftSide = new QVBoxLayout();
     leftSide->addLayout(topArea);
     leftSide->addWidget(boardDisplay);
@@ -208,7 +214,7 @@ void MainWindow::getJson(){
 }
 void MainWindow::startSearching(){
     QVector <Task> taskArr;
-    for(int i=0;i<1/*forDisplayBoard->num_agent*/;i++){
+    for(int i=0;i<forDisplayBoard->num_agent;i++){
         Task t = Task(forDisplayBoard,30,1000,2);
         taskArr.append(t);
     }
@@ -235,10 +241,33 @@ void MainWindow::timeUP (){
                 std::cout << outPutArr[i].to_string()<<std::endl;
             }
             std::cout << Action::createJson(outPutArr)<<std::endl;
+            postAgentAct = QString::fromStdString(Action::createJson(outPutArr));
         }
         timerSearch->stop();
     }
+    int sucsess = MainWindow::uploadActJson();
     
+}
+
+int MainWindow::uploadActJson(){
+    std::cout << "uploadActJson" <<std::endl;
+    QString matchID=MainWindow::matcheditID->text();
+    QUrl url = QUrl(serverURLStr+"/matches/"+matchID+"/action");
+    QNetworkAccessManager * mgr = new QNetworkAccessManager(this);
+    QNetworkRequest request(url);
+    QString currentToken="procon30_example_token"; //"553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
+    connect(mgr, SIGNAL(finished(QNetworkReply*)), this, SLOT(onPostFinished(QNetworkReply*)));//送信が終わったときにonPostFinish(QNetworkReply* reply)が呼ばれる
+    request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
+    request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
+    QString jsonStr=MainWindow::postAgentAct;//エージェントのアクションのjsonの文字列(QString)
+    mgr->post(request, jsonStr.toUtf8());
+    return 0;
+};
+
+void MainWindow::onPostFinished(QNetworkReply* reply){
+    QByteArray bytes = reply->readAll();
+    QString str = QString::fromUtf8(bytes.data(), bytes.size());
+    cout <<"replay="<< str.toStdString()<< endl;
 }
 
 MainWindow::~MainWindow()

@@ -40,3 +40,4 @@ QT += widgets
 QT += core
 CONFIG += console
 QT += concurrent
+QT += network
