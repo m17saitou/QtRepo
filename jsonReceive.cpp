@@ -6,13 +6,13 @@ Board* jsonReceive::jsonRead(int ourTeamID,std::string jsonName){
     //json読み込み準備部分
     // std::cout << "読み込み開始\n";
     std::ifstream infile(jsonName);
-    if(!infile) throw std::runtime_error("Jsonファイルが開けません");
+    //if(!infile) throw std::runtime_error("Jsonファイルが開けません");
     Json::Value root;
     Json::CharReaderBuilder rbuilder;
     std::string errs;
     // std::cout << "json読み込み\n";
     bool parsingSuccessful = Json::parseFromStream(rbuilder, infile, &root, &errs);
-    if(!parsingSuccessful) throw std::runtime_error("Jsonふぁいるが解析できません");
+    //if(!parsingSuccessful) throw std::runtime_error("Jsonふぁいるが解析できません");
     //json読み込み準備完了
     
     // std::cout << "rootのなかに格納はできてる\n";

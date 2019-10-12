@@ -77,6 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
     connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
     connect(autoBattle,SIGNAL(clicked()),this, SLOT(autoBattleing()));
+    connect(autoBattle,SIGNAL(clicked()),this, SLOT(downloadBoard()));
 
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
     topArea->addWidget(ourTeamID);
@@ -282,6 +283,7 @@ void  MainWindow::downloadBoard(){
     //request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
     request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
     mgr->get(request);
+    return;
 }
 
 void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
@@ -305,10 +307,90 @@ void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
         str +=  tr( "    ダウンロード異常終了" );
     }
     cout << str.toStdString()<< endl;
+    return;
 }
 
 void MainWindow::autoBattleing(){
+    forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
+    MainWindow::boardReload(forDisplayBoard);
+}
+
+
+void MainWindow::boardReload(Board* dspBoard){
+    if(cnt != 0){
+        dspBoard->agentMapG_to_L.clear();
+        dspBoard->agentMapL_to_G.clear();
+    }
+    for(int y=0;y<20;y++){//処理前にクリア
+        for(int x=0;x<20;x++){
+            ((QLabel*)(MainWindow::boardDisplay->cellWidget(y,x)))-> setText(" ");
+            MainWindow::boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #fff");
+            if(y<16 && x<4){
+                ((QLabel*)(agentWhereXY->cellWidget(y,x)))->setText(" ");
+                agentWhereXY->cellWidget(y,x)->setStyleSheet("background-color: #fff");
+            }
+        }
+    } 
     
+    std::map <int , int> xyToAgentID;
+    for(int i=0;i<dspBoard->num_agent;i++){
+        xyToAgentID.emplace((dspBoard->friend_place[i].getY()) * dspBoard->width + (dspBoard->friend_place[i].getX()) , i+1);
+        xyToAgentID.emplace((dspBoard->enemy_place[i].getY()) * dspBoard->width + (dspBoard->enemy_place[i].getX()) , -i-1);
+    }
+    QString *tileP = new QString();
+    char ourChar = 64,enemyChar = 96;
+    int wherecount=0;
+    for(int y=0;y<dspBoard->height;y++){
+        for(int x=0;x<dspBoard->width;x++){
+            *tileP = QString::number(dspBoard->field_points[y][x],10);
+            decltype(xyToAgentID)::iterator thereAgent = xyToAgentID.find(y*dspBoard->width + x);
+            if(dspBoard->tiled[y][x] == 1){
+                if(thereAgent != xyToAgentID.end()){
+                    MainWindow::boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #ffc0cb");
+                    ourChar += thereAgent->second;
+                    *tileP += QString::fromUtf8(&ourChar,1);
+                    int LIDnum = thereAgent->second;
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,0)))->setText(QString::fromUtf8(&ourChar,1));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,1)))->setText(QString::number(Board::getAIdL_to_G(LIDnum)));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,2)))->setText(QString::number(x+1));
+                    ((QLabel*)(agentWhereXY->cellWidget(wherecount,3)))->setText(QString::number(y+1));
+                    agentWhereXY->cellWidget(wherecount,0)->setStyleSheet("background-color: #ffc0cb");
+                    wherecount++;
+                }
+                else MainWindow::boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #dd88dd");
+            }//味方のマス 背景色赤色
+            else if(dspBoard->tiled[y][x] == -1){
+                if(thereAgent != xyToAgentID.end()){
+                    MainWindow::boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #00eeee");
+                    enemyChar += -(thereAgent->second);
+                    *tileP += QString::fromUtf8(&enemyChar,1);
+                    int LIDnum = thereAgent->second;
+                    ((QLabel*)(agentWhereXY->cellWidget(dspBoard->num_agent + (-LIDnum-1),0)))->setText(QString::fromUtf8(&enemyChar,1));
+                    ((QLabel*)(agentWhereXY->cellWidget(dspBoard->num_agent + (-LIDnum-1),1)))->setText(QString::number(Board::getAIdL_to_G(LIDnum)));
+                    ((QLabel*)(agentWhereXY->cellWidget(dspBoard->num_agent + (-LIDnum-1),2)))->setText(QString::number(x+1));
+                    ((QLabel*)(agentWhereXY->cellWidget(dspBoard->num_agent + (-LIDnum-1),3)))->setText(QString::number(y+1));
+                    agentWhereXY->cellWidget(dspBoard->num_agent + (-LIDnum-1),0)->setStyleSheet("background-color: #00eeee");
+                }
+                else MainWindow::boardDisplay->cellWidget(y,x)->setStyleSheet("background-color: #00bfff");
+            }//敵のマス 背景色青色
+            ((QLabel*)(MainWindow::boardDisplay->cellWidget(y,x)))->setAlignment(Qt::AlignCenter);
+            ((QLabel*)(MainWindow::boardDisplay->cellWidget(y,x)))-> setText(*tileP);
+            ourChar = 64,enemyChar = 96;
+        }
+    }
+    turn_Num->setNum(dspBoard->turn);
+    int ourAP = dspBoard->calcAreaPoint(1),
+        enmAP = dspBoard->calcAreaPoint(-1);
+    int ourTP = dspBoard->tile_point(1),
+        enmTP = dspBoard->tile_point(-1);
+    ourAreaP->setNum(ourAP);
+    enemyAreaP->setNum(enmAP);
+    ourTileP->setNum(ourTP);
+    enemyTileP->setNum(enmTP);
+    ourPoint->setNum(ourAP + ourTP);
+    enemyPoint->setNum(enmAP + enmTP);
+    cnt++;
+    return;
 }
 
 MainWindow::~MainWindow()

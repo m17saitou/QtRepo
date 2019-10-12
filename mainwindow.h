@@ -47,6 +47,7 @@ class MainWindow : public QMainWindow
 
 public:
     int ourTID;
+    int cnt=0;
     QFuture <std::vector<Action>> ret;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -56,8 +57,7 @@ public:
     static std::vector<Action> map (const Task& t);
     static void reduce(std::vector<Action>& finalActs,const std::vector<Action>& result);
     int uploadActJson();
-    void downloadBoard();
-    void onGetBoardJSONFinished(QNetworkReply* reply);
+    void boardReload(Board* dspBoard);
 private:
     Board *forDisplayBoard;
     QTimer *timerSearch;
@@ -93,6 +93,8 @@ private slots:
     void timeUP();
     void onPostFinished(QNetworkReply*);
     void autoBattleing();
+    void onGetBoardJSONFinished(QNetworkReply* reply);
+    void downloadBoard();
 };
 
 #endif // MAINWINDOW_H
