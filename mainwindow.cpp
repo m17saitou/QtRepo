@@ -252,7 +252,7 @@ int MainWindow::uploadActJson(){
     QUrl url = QUrl(serverURLStr+"/matches/"+matchID+"/action");
     QNetworkAccessManager * mgr = new QNetworkAccessManager(this);
     QNetworkRequest request(url);
-    QString currentToken="procon30_example_token"; //"553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
+    QString currentToken="553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
     connect(mgr, SIGNAL(finished(QNetworkReply*)), this, SLOT(onPostFinished(QNetworkReply*)));//送信が終わったときにonPostFinish(QNetworkReply* reply)が呼ばれる
     request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
     request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
@@ -273,7 +273,7 @@ void  MainWindow::downloadBoard(){
     QUrl url = QUrl(serverURLStr+"/matches/"+matchID+"/");
     QNetworkAccessManager * mgr = new QNetworkAccessManager(this);
     QNetworkRequest request(url);
-    QString currentToken="procon30_example_token"; //"553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
+    QString currentToken="553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
     connect(mgr, SIGNAL(finished(QNetworkReply*)), this, SLOT(onGetBoardJSONFinished(QNetworkReply*)));//送信が終わったときにonPostFinish(QNetworkReply* reply)が呼ばれる
     //request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
     request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
