@@ -60,7 +60,6 @@ public:
     void boardReload(Board* dspBoard);
 private:
     Board *forDisplayBoard;
-    QTimer *timerSearch;
     QLabel *ourTeamID;
     QLineEdit *ourTeamID_Num;
     QLabel *turn;
@@ -79,11 +78,15 @@ private:
     QLabel *ourPoint;//自チームの合計得点表示部分
     QLabel *enemyPoint;//敵チームの合計得点表示部分
     QLabel *MatchID;
+    QLabel *turnIntv;
+    QLabel *searchIntv;
+    QLineEdit *turnIntv_Num;
+    QLineEdit *searchIntv_Num;
     QLineEdit *matcheditID;//試合番号を入力する部分
     QTableWidget *agentWhereXY;//右下に座標を表示していく表
     QTableWidget *boardDisplay;//盤面を表示する部分
     QTimer *turnInterval; // 1ターン分のインターバルタイマ
-    QTimer *sendInterval; // Actionの送信のインターバルタイマ
+    QTimer *timerSearch;
     QPushButton *getJsonFile;
     QPushButton *startSearch;
     QPushButton *autoBattle;
@@ -95,6 +98,7 @@ private slots:
     void autoBattleing();
     void onGetBoardJSONFinished(QNetworkReply* reply);
     void downloadBoard();
+    void everyTurn();
 };
 
 #endif // MAINWINDOW_H

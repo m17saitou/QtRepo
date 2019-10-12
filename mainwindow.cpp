@@ -29,15 +29,18 @@ MainWindow::MainWindow(QWidget *parent)
     enemyPoint = new QLabel("0");
     MatchID = new QLabel("MatchID : ");
     matcheditID = new QLineEdit("0",nullptr);
+    turnIntv = new QLabel("Turn Interval(ms)");
+    turnIntv_Num = new QLineEdit("10000",nullptr);
+    searchIntv = new QLabel("Search Interval(ms)");
+    searchIntv_Num = new QLineEdit("4000",nullptr);
 
     turnInterval = new QTimer(this);
-    sendInterval = new QTimer(this);
-
     timerSearch = new QTimer(this);
     connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
+    connect(turnInterval,SIGNAL(timeout()),this, SLOT(everyTurn()));
 
     boardDisplay = new QTableWidget(20,20,this);
-    boardDisplay->setFixedSize(622,624);
+    boardDisplay->setFixedSize(626,626);
     boardDisplay->setHorizontalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
     boardDisplay->setVerticalHeaderLabels( QStringList() <<"01"<<"02"<<"03"<<"04"<<"05"<<"06"<<"07"<<"08"<<"09"<<"10"<<"11"<<"12"<<"13"<<"14"<<"15"<<"16"<<"17"<<"18"<<"19"<<"20");
     for(int i=0;i<20;i++){
@@ -51,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     boardDisplay->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     agentWhereXY = new QTableWidget(16,4,this);
-    agentWhereXY->setFixedSize(142,344);
+    agentWhereXY->setFixedSize(145,347);
     agentWhereXY->setHorizontalHeaderLabels(QStringList() << "LID" << "GID" << "x" << "y");
     for(int i=0;i<4;i++){
         agentWhereXY->setColumnWidth(i,30);
@@ -120,7 +123,10 @@ MainWindow::MainWindow(QWidget *parent)
     buttonLayout->addWidget(autoBattle);
 
     QVBoxLayout *rightSide = new QVBoxLayout();
-    rightSide->addStretch();
+    rightSide->addWidget(turnIntv);
+    rightSide->addWidget(turnIntv_Num);
+    rightSide->addWidget(searchIntv);
+    rightSide->addWidget(searchIntv_Num);
     rightSide->addLayout(pointDisplay);
     rightSide->addStretch();
     rightSide->addLayout(buttonLayout);
@@ -217,11 +223,11 @@ void MainWindow::getJson(){
 void MainWindow::startSearching(){
     QVector <Task> taskArr;
     for(int i=0;i<forDisplayBoard->num_agent;i++){
-        Task t = Task(forDisplayBoard,30,1000,2);
+        Task t = Task(forDisplayBoard,60,10000,1<<i);
         taskArr.append(t);
     }
     ret = QtConcurrent::mappedReduced(taskArr,map, reduce, QtConcurrent::SequentialReduce);
-    timerSearch->start(1000);
+    timerSearch->start(searchIntv_Num->text().toInt());
 }
 
 std::vector<Action> MainWindow::map (const Task& t){
@@ -313,14 +319,26 @@ void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
 void MainWindow::autoBattleing(){
     forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
     MainWindow::boardReload(forDisplayBoard);
+    MainWindow::autoBattle->setEnabled(false);
+    turnInterval->start(turnIntv_Num->text().toInt());
+    MainWindow::startSearching();
 }
 
+void MainWindow::everyTurn(){
+    MainWindow::turnInterval->stop();
+    MainWindow::turnInterval->start();
+    MainWindow::forDisplayBoard->agentMapG_to_L.clear();
+    MainWindow::forDisplayBoard->agentMapL_to_G.clear();
+    MainWindow::downloadBoard();
+    std::cout << "jsonreceive\n";
+    forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
+    std::cout << "boardReload\n";
+    MainWindow::boardReload(forDisplayBoard);
+    std::cout <<"startSrae\n";
+    MainWindow::startSearching();
+}
 
 void MainWindow::boardReload(Board* dspBoard){
-    if(cnt != 0){
-        dspBoard->agentMapG_to_L.clear();
-        dspBoard->agentMapL_to_G.clear();
-    }
     for(int y=0;y<20;y++){//処理前にクリア
         for(int x=0;x<20;x++){
             ((QLabel*)(MainWindow::boardDisplay->cellWidget(y,x)))-> setText(" ");
