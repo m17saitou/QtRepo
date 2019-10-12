@@ -82,6 +82,8 @@ private:
     QLineEdit *matcheditID;//試合番号を入力する部分
     QTableWidget *agentWhereXY;//右下に座標を表示していく表
     QTableWidget *boardDisplay;//盤面を表示する部分
+    QTimer *turnInterval; // 1ターン分のインターバルタイマ
+    QTimer *sendInterval; // Actionの送信のインターバルタイマ
     QPushButton *getJsonFile;
     QPushButton *startSearch;
     QPushButton *autoBattle;

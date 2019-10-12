@@ -30,6 +30,9 @@ MainWindow::MainWindow(QWidget *parent)
     MatchID = new QLabel("MatchID : ");
     matcheditID = new QLineEdit("0",nullptr);
 
+    turnInterval = new QTimer(this);
+    sendInterval = new QTimer(this);
+
     timerSearch = new QTimer(this);
     connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
 
