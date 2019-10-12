@@ -76,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
     connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
+    connect(autoBattle,SIGNAL(clicked()),this, SLOT(autoBattleing()));
 
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
     topArea->addWidget(ourTeamID);
@@ -304,6 +305,10 @@ void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
         str +=  tr( "    ダウンロード異常終了" );
     }
     cout << str.toStdString()<< endl;
+}
+
+void MainWindow::autoBattleing(){
+    
 }
 
 MainWindow::~MainWindow()

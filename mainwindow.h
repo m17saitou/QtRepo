@@ -92,6 +92,7 @@ private slots:
     void startSearching();
     void timeUP();
     void onPostFinished(QNetworkReply*);
+    void autoBattleing();
 };
 
 #endif // MAINWINDOW_H

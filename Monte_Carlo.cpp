@@ -277,7 +277,7 @@ vector<Action> Monte_Carlo::select_best_uct_select(Board &board,int which_turn,i
             search_uct_select(which_turn,node,*board_copy,remainingTurn*Board::num_agent,agent_bit);//chikara修正のため差し替え追加
             //which_turn*=(-1);//chikaraコメントアウト
             board_copy->overwrite(board);
-            if(i %1000 == 0)cout<<"現在"<<i<<"回探索しました"<<endl;
+            //if(i %1000 == 0)cout<<"現在"<<i<<"回探索しました"<<endl;
       }
       vector<Action> best_action;
       int cnt = 0;
