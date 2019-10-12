@@ -84,7 +84,7 @@ private:
     QTableWidget *boardDisplay;//盤面を表示する部分
     QPushButton *getJsonFile;
     QPushButton *startSearch;
-    QPushButton *stopSearch;
+    QPushButton *autoBattle;
 private slots:
     void getJson();
     void startSearching();

@@ -67,9 +67,9 @@ MainWindow::MainWindow(QWidget *parent)
     startSearch = new QPushButton(tr("StartSearch"));
     startSearch->setDefault(true);
     startSearch->setEnabled(true);
-    stopSearch = new QPushButton(tr("StopSearch"));
-    stopSearch->setDefault(true);
-    stopSearch->setEnabled(true);
+    autoBattle = new QPushButton(tr("autoBattle"));
+    autoBattle->setDefault(true);
+    autoBattle->setEnabled(true);
 
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
     connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
@@ -112,7 +112,7 @@ MainWindow::MainWindow(QWidget *parent)
     QVBoxLayout *buttonLayout = new QVBoxLayout();//ボタン部分のLayout
     buttonLayout->addWidget(getJsonFile);
     buttonLayout->addWidget(startSearch);
-    buttonLayout->addWidget(stopSearch);
+    buttonLayout->addWidget(autoBattle);
 
     QVBoxLayout *rightSide = new QVBoxLayout();
     rightSide->addStretch();
