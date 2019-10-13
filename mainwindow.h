@@ -26,6 +26,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QDateTime>
 
 class Action;
 class QLineEdit;
@@ -58,6 +59,7 @@ public:
     static void reduce(std::vector<Action>& finalActs,const std::vector<Action>& result);
     int uploadActJson();
     void boardReload(Board* dspBoard);
+    void checkMap();
 private:
     Board *forDisplayBoard;
     QLabel *ourTeamID;
@@ -98,7 +100,6 @@ private slots:
     void autoBattleing();
     void onGetBoardJSONFinished(QNetworkReply* reply);
     void downloadBoard();
-    void everyTurn();
 };
 
 #endif // MAINWINDOW_H

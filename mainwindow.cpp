@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
     turnInterval = new QTimer(this);
     timerSearch = new QTimer(this);
     connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
-    connect(turnInterval,SIGNAL(timeout()),this, SLOT(everyTurn()));
+    connect(turnInterval,SIGNAL(timeout()),this, SLOT(downloadBoard()));
 
     boardDisplay = new QTableWidget(20,20,this);
     boardDisplay->setFixedSize(626,626);
@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
     connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
     connect(autoBattle,SIGNAL(clicked()),this, SLOT(autoBattleing()));
-    connect(autoBattle,SIGNAL(clicked()),this, SLOT(downloadBoard()));
+    //connect(autoBattle,SIGNAL(clicked()),this, SLOT(downloadBoard()));
 
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
     topArea->addWidget(ourTeamID);
@@ -143,8 +143,8 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::getJson(){
-    forDisplayBoard->agentMapG_to_L.clear();
-    forDisplayBoard->agentMapL_to_G.clear();
+    Board::agentMapG_to_L.clear();
+    Board::agentMapL_to_G.clear();
     for(int y=0;y<20;y++){//処理前にクリア
         for(int x=0;x<20;x++){
             ((QLabel*)(boardDisplay->cellWidget(y,x)))-> setText(" ");
@@ -279,9 +279,12 @@ void MainWindow::onPostFinished(QNetworkReply* reply){
 }
 
 void  MainWindow::downloadBoard(){
+    std::cout << QDateTime::currentSecsSinceEpoch() << std::endl;
+    Board::agentMapL_to_G.clear();
+    Board::agentMapG_to_L.clear();
     std::cout << "downloadBoard" << std::endl;
     QString matchID=MainWindow::matcheditID->text();
-    QUrl url = QUrl(serverURLStr+"/matches/"+matchID+"/");
+    QUrl url = QUrl(serverURLStr+"/matches/"+matchID);
     QNetworkAccessManager * mgr = new QNetworkAccessManager(this);
     QNetworkRequest request(url);
     QString currentToken="553e013f0028cebf9997c457f84360af3c3d8ba6b5b6ba7b4e622f6b3685050d";
@@ -289,11 +292,12 @@ void  MainWindow::downloadBoard(){
     //request.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
     request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
     mgr->get(request);
-    return;
+    std::cout <<"endDLBoard\n";
+    
 }
 
 void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
-
+    std::cout << "getBoardJsonFin start\n";
     QString str;
     if(reply->error() == QNetworkReply::NoError)
     {
@@ -313,32 +317,21 @@ void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
         str +=  tr( "    ダウンロード異常終了" );
     }
     cout << str.toStdString()<< endl;
+    MainWindow::forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
+    MainWindow::boardReload(MainWindow::forDisplayBoard);
+    MainWindow::startSearching();
     return;
 }
 
 void MainWindow::autoBattleing(){
-    forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
-    MainWindow::boardReload(forDisplayBoard);
+    MainWindow::checkMap();
+    MainWindow::downloadBoard();
     MainWindow::autoBattle->setEnabled(false);
     turnInterval->start(turnIntv_Num->text().toInt());
-    MainWindow::startSearching();
-}
-
-void MainWindow::everyTurn(){
-    MainWindow::turnInterval->stop();
-    MainWindow::turnInterval->start();
-    MainWindow::forDisplayBoard->agentMapG_to_L.clear();
-    MainWindow::forDisplayBoard->agentMapL_to_G.clear();
-    MainWindow::downloadBoard();
-    std::cout << "jsonreceive\n";
-    forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
-    std::cout << "boardReload\n";
-    MainWindow::boardReload(forDisplayBoard);
-    std::cout <<"startSrae\n";
-    MainWindow::startSearching();
 }
 
 void MainWindow::boardReload(Board* dspBoard){
+    std::cout << "boardReLoad\n";
     for(int y=0;y<20;y++){//処理前にクリア
         for(int x=0;x<20;x++){
             ((QLabel*)(MainWindow::boardDisplay->cellWidget(y,x)))-> setText(" ");
@@ -409,6 +402,27 @@ void MainWindow::boardReload(Board* dspBoard){
     enemyPoint->setNum(enmAP + enmTP);
     cnt++;
     return;
+}
+
+void MainWindow::checkMap(){
+    std::cout << "agentMapG_to_L\n";
+    if(forDisplayBoard->agentMapG_to_L.empty()){
+        std::cout << "Empty\n";
+        return;
+    }
+    for(std::map<int,int>::iterator itr = forDisplayBoard->agentMapG_to_L.begin();itr != forDisplayBoard->agentMapG_to_L.end();itr++){
+        std::cout<< itr->first << std::endl;
+        std::cout<<itr->second<< std::endl;
+    }
+    std::cout << "agentMapL_to_G\n";
+    if(forDisplayBoard->agentMapL_to_G.empty()){
+        std::cout << "Empty\n";
+        return;
+    }
+    for(std::map<int,int>::iterator itr = forDisplayBoard->agentMapL_to_G.begin();itr != forDisplayBoard->agentMapL_to_G.end();itr++){
+        std::cout<< itr->first << std::endl;
+        std::cout<<itr->second<< std::endl;
+    }
 }
 
 MainWindow::~MainWindow()
