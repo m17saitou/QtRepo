@@ -264,6 +264,16 @@ int Monte_Carlo::search_uct(int which_turn,Node* pN,Board &board,int remainingTu
 
 vector<Action> Monte_Carlo::select_best_uct_select(Board &board,int which_turn,int remainingTurn,int uct_loop,uint16_t agent_bit)//chikara::返り値のActionの実態はnewで作っているため使用後にdeleteが必要
 { //UCTを繰り返す関数//rootのノードを作成し、ある回数UCTを繰り返し、終わったら一番多く選ばれた手を返す
+      //board.display();
+      //std::cout << which_turn <<endl;
+      //std::cout << remainingTurn << endl;
+      //std::cout << uct_loop << endl;
+      //std::cout << agent_bit <<endl;
+      //std::cout << "vettor\n";
+      //vector<int>* tmpvect = board.get_wait_agent();
+      //for(int cnt=0;cnt < tmpvect->size();cnt++){
+      //      std::cout << tmpvect->at(cnt) <<endl;
+      //}
       Node* node = Node::create_node(which_turn,board);
       Board* board_copy = board.overwrite_copy();
       //cout<<std::hex<<node->get_agent_bit(0)<<std::dec<<endl;
@@ -274,8 +284,11 @@ vector<Action> Monte_Carlo::select_best_uct_select(Board &board,int which_turn,i
             //node->printChildren();
             //cout <<"uct_loop_i=" << i<< endl;
             //search_uct(which_turn,node,board);//chikaraコメントアウト
-            search_uct_select(which_turn,node,*board_copy,remainingTurn*Board::num_agent,agent_bit);//chikara修正のため差し替え追加
-            //which_turn*=(-1);//chikaraコメントアウト
+            search_uct_select(which_turn,node,*board_copy,remainingTurn*Board::num_agent,agent_bit);
+            MainWindow::lock.lockForRead();
+            bool localStop= MainWindow::stop;
+            MainWindow::lock.unlock();
+            if(localStop) break;
             board_copy->overwrite(board);
             //if(i %1000 == 0)cout<<"現在"<<i<<"回探索しました"<<endl;
       }

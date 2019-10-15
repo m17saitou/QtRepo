@@ -26,6 +26,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <QReadWriteLock>
 #include <QDateTime>
 
 class Action;
@@ -48,7 +49,9 @@ class MainWindow : public QMainWindow
 
 public:
     int ourTID;
-    int cnt=0;
+    int cnt;
+    static bool stop;
+    static QReadWriteLock lock;
     QFuture <std::vector<Action>> ret;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -64,6 +67,8 @@ private:
     Board *forDisplayBoard;
     QLabel *ourTeamID;
     QLineEdit *ourTeamID_Num;
+    QLineEdit *searchTurn;
+    QLabel *sturn;
     QLabel *turn;
     QLabel *ourColor;
     QLabel *turn_Num;
@@ -89,9 +94,11 @@ private:
     QTableWidget *boardDisplay;//盤面を表示する部分
     QTimer *turnInterval; // 1ターン分のインターバルタイマ
     QTimer *timerSearch;
+    QTimer *sendAct;
     QPushButton *getJsonFile;
     QPushButton *startSearch;
     QPushButton *autoBattle;
+    QPushButton *stopSearch;
 private slots:
     void getJson();
     void startSearching();
@@ -100,6 +107,8 @@ private slots:
     void autoBattleing();
     void onGetBoardJSONFinished(QNetworkReply* reply);
     void downloadBoard();
+    void stopSearching();
+    void startSearchingonce();
 };
 
 #endif // MAINWINDOW_H

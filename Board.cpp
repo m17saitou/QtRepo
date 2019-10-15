@@ -149,9 +149,9 @@ void Board::overwrite(Board &board){
     for(int j = 0; j < height; j++){
         std::memcpy(this->tiled[j], board.tiled[j], sizeof(int)*width);
     }
-    std::copy(board.wait_agent.begin(), board.wait_agent.end(), std::back_inserter(this->wait_agent));
+    //std::copy(board.wait_agent.begin(), board.wait_agent.end(), std::back_inserter(this->wait_agent));
     //cout<<"board.wait_agent.size()"<< board.wait_agent.size() << endl;
-    //this->wait_agent=board.wait_agent;//chikara修正のため差し替え追加:遅いけど確実に動かすために仮で使う
+    this->wait_agent=board.wait_agent;//chikara修正のため差し替え追加:遅いけど確実に動かすために仮で使う
     this->turn=board.turn;//chikara追加
 }
 

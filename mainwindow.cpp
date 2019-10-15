@@ -9,7 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     QStringList argStr = QCoreApplication::arguments();
-    serverURLStr = "http://localhost:8081";
+    serverURLStr = "http://10.10.52.252:80";
     ourTeamID = new QLabel(tr("Our TeamID"));//自チームのTeamID表示Label
     ourTeamID_Num = new QLineEdit("0");
     turn = new QLabel(tr("Turn"));//盤面のターン表示Label
@@ -33,11 +33,16 @@ MainWindow::MainWindow(QWidget *parent)
     turnIntv_Num = new QLineEdit("10000",nullptr);
     searchIntv = new QLabel("Search Interval(ms)");
     searchIntv_Num = new QLineEdit("4000",nullptr);
+    searchTurn = new QLineEdit("60",nullptr);
+    sturn = new QLabel("GameTurn");
+    sendAct = new QTimer(this);
 
     turnInterval = new QTimer(this);
     timerSearch = new QTimer(this);
-    connect(timerSearch, SIGNAL(timeout()),this, SLOT(timeUP()));
+    timerSearch->setSingleShot(true);
+    connect(timerSearch, SIGNAL(timeout()),this, SLOT(stopSearching()));
     connect(turnInterval,SIGNAL(timeout()),this, SLOT(downloadBoard()));
+    connect(sendAct,SIGNAL(timeout()),this, SLOT(timeUP()));
 
     boardDisplay = new QTableWidget(20,20,this);
     boardDisplay->setFixedSize(626,626);
@@ -76,23 +81,28 @@ MainWindow::MainWindow(QWidget *parent)
     autoBattle = new QPushButton(tr("autoBattle"));
     autoBattle->setDefault(true);
     autoBattle->setEnabled(true);
+    stopSearch = new QPushButton(tr("StopSearch"));
+    stopSearch->setDefault(true);
+    stopSearch->setEnabled(true);
 
     connect(getJsonFile,SIGNAL(clicked()),this, SLOT(getJson()));
-    connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearching()));
+    connect(startSearch,SIGNAL(clicked()),this, SLOT(startSearchingonce()));
     connect(autoBattle,SIGNAL(clicked()),this, SLOT(autoBattleing()));
+    connect(stopSearch,SIGNAL(clicked()),this,SLOT(stopSearching()));
     //connect(autoBattle,SIGNAL(clicked()),this, SLOT(downloadBoard()));
 
     QHBoxLayout *topArea = new QHBoxLayout();//ターンと自チームのTeamIDのLayout
+    topArea->addWidget(MatchID);
+    topArea->addWidget(matcheditID);
     topArea->addWidget(ourTeamID);
     topArea->addWidget(ourTeamID_Num);
-    topArea->addStretch();
+    topArea->addWidget(sturn);
+    topArea->addWidget(searchTurn);
     topArea->addWidget(turn);
     topArea->addWidget(turn_Num);
     topArea->addStretch();
     topArea->addWidget(ourColor);
     topArea->addStretch();
-    topArea->addWidget(MatchID);
-    topArea->addWidget(matcheditID);
     QVBoxLayout *leftSide = new QVBoxLayout();
     leftSide->addLayout(topArea);
     leftSide->addWidget(boardDisplay);
@@ -118,10 +128,10 @@ MainWindow::MainWindow(QWidget *parent)
     pointDisplay->addLayout(enemyPointLayout);
 
     QVBoxLayout *buttonLayout = new QVBoxLayout();//ボタン部分のLayout
+    buttonLayout->addWidget(autoBattle);
     buttonLayout->addWidget(getJsonFile);
     buttonLayout->addWidget(startSearch);
-    buttonLayout->addWidget(autoBattle);
-
+    buttonLayout->addWidget(stopSearch);
     QVBoxLayout *rightSide = new QVBoxLayout();
     rightSide->addWidget(turnIntv);
     rightSide->addWidget(turnIntv_Num);
@@ -139,8 +149,11 @@ MainWindow::MainWindow(QWidget *parent)
     QWidget *widget = new QWidget();
     widget->setLayout(mainLayout);
     setCentralWidget(widget);//MainWindowのCentralWidgetにmainLayoutを表示させる部分
-    
+
 }
+
+bool MainWindow::stop;
+QReadWriteLock MainWindow::lock;
 
 void MainWindow::getJson(){
     Board::agentMapG_to_L.clear();
@@ -154,7 +167,7 @@ void MainWindow::getJson(){
                 agentWhereXY->cellWidget(y,x)->setStyleSheet("background-color: #fff");
             }
         }
-    } 
+    }
     QString jsonDialogName = QFileDialog::getOpenFileName(this,tr("JsonFile Read"),".","json File (*.json)");
     if(!jsonDialogName.isEmpty()){
         jsonNameStr = jsonDialogName.toUtf8().constData();
@@ -220,14 +233,34 @@ void MainWindow::getJson(){
     enemyPoint->setNum(enmAP + enmTP);
     return;
 }
-void MainWindow::startSearching(){
+
+void MainWindow::startSearchingonce(){
+    MainWindow::cnt = 0;
     QVector <Task> taskArr;
     for(int i=0;i<forDisplayBoard->num_agent;i++){
-        Task t = Task(forDisplayBoard,60,10000,1<<i);
+        Task t = Task(forDisplayBoard,60,100000,1<<i);
         taskArr.append(t);
     }
+    lock.lockForWrite();
+    stop=false;
+    lock.unlock();
     ret = QtConcurrent::mappedReduced(taskArr,map, reduce, QtConcurrent::SequentialReduce);
     timerSearch->start(searchIntv_Num->text().toInt());
+}
+
+void MainWindow::startSearching(){
+    QVector <Task> taskArr;
+    for(int i=0;i<MainWindow::forDisplayBoard->num_agent;i++){
+        int turn = searchTurn->text().toInt() - MainWindow::cnt;
+        if(turn <= 0) turn = 2;
+        Task t = Task(forDisplayBoard,turn,100000,1<<i);
+        taskArr.append(t);
+    }
+    lock.lockForWrite();
+    stop=false;
+    lock.unlock();
+    ret = QtConcurrent::mappedReduced(taskArr,map, reduce, QtConcurrent::SequentialReduce);
+    sendAct->start(250);
 }
 
 std::vector<Action> MainWindow::map (const Task& t){
@@ -250,11 +283,12 @@ void MainWindow::timeUP (){
             }
             std::cout << Action::createJson(outPutArr)<<std::endl;
             postAgentAct = QString::fromStdString(Action::createJson(outPutArr));
+            int sucsess = MainWindow::uploadActJson();
         }
         timerSearch->stop();
+        sendAct->stop();
     }
-    int sucsess = MainWindow::uploadActJson();
-    
+
 }
 
 int MainWindow::uploadActJson(){
@@ -276,9 +310,12 @@ void MainWindow::onPostFinished(QNetworkReply* reply){
     QByteArray bytes = reply->readAll();
     QString str = QString::fromUtf8(bytes.data(), bytes.size());
     cout <<"replay="<< str.toStdString()<< endl;
+    std::cout << QDateTime::currentSecsSinceEpoch() << std::endl;
 }
 
 void  MainWindow::downloadBoard(){
+    timerSearch->start(searchIntv_Num->text().toInt());
+    MainWindow::cnt++;
     std::cout << QDateTime::currentSecsSinceEpoch() << std::endl;
     Board::agentMapL_to_G.clear();
     Board::agentMapG_to_L.clear();
@@ -293,7 +330,7 @@ void  MainWindow::downloadBoard(){
     request.setRawHeader(QByteArray("Authorization"),currentToken.toUtf8());//tokenの設定//currentTokenはQStingなのでutf8に変換して与える。
     mgr->get(request);
     std::cout <<"endDLBoard\n";
-    
+
 }
 
 void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
@@ -319,12 +356,14 @@ void MainWindow::onGetBoardJSONFinished(QNetworkReply* reply){
     cout << str.toStdString()<< endl;
     MainWindow::forDisplayBoard = jsonReceive::jsonRead(MainWindow::ourTeamID_Num->text().toInt(nullptr,10),"download.json");
     MainWindow::boardReload(MainWindow::forDisplayBoard);
+    std::cout << QDateTime::currentSecsSinceEpoch() << std::endl;
     MainWindow::startSearching();
     return;
 }
 
 void MainWindow::autoBattleing(){
-    MainWindow::checkMap();
+    MainWindow::cnt=0;
+    //MainWindow::checkMap();
     MainWindow::downloadBoard();
     MainWindow::autoBattle->setEnabled(false);
     turnInterval->start(turnIntv_Num->text().toInt());
@@ -341,8 +380,8 @@ void MainWindow::boardReload(Board* dspBoard){
                 agentWhereXY->cellWidget(y,x)->setStyleSheet("background-color: #fff");
             }
         }
-    } 
-    
+    }
+
     std::map <int , int> xyToAgentID;
     for(int i=0;i<dspBoard->num_agent;i++){
         xyToAgentID.emplace((dspBoard->friend_place[i].getY()) * dspBoard->width + (dspBoard->friend_place[i].getX()) , i+1);
@@ -400,7 +439,6 @@ void MainWindow::boardReload(Board* dspBoard){
     enemyTileP->setNum(enmTP);
     ourPoint->setNum(ourAP + ourTP);
     enemyPoint->setNum(enmAP + enmTP);
-    cnt++;
     return;
 }
 
@@ -423,6 +461,13 @@ void MainWindow::checkMap(){
         std::cout<< itr->first << std::endl;
         std::cout<<itr->second<< std::endl;
     }
+}
+
+void MainWindow::stopSearching(){
+    MainWindow::lock.lockForWrite();
+    MainWindow::stop=true;
+    MainWindow::lock.unlock();
+    std::cout << "stop " << QDateTime::currentSecsSinceEpoch() << std::endl;
 }
 
 MainWindow::~MainWindow()

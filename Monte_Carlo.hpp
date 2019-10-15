@@ -4,6 +4,7 @@
 #include "Agent-Action.hpp"
 #include "Node.hpp"
 #include "bit_calculation.hpp"
+#include "mainwindow.h"
 #include <vector>
 #include <random>
 #include <json/json.h>
